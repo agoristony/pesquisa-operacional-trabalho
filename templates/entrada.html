@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div>Modo de otimização: </div>
+    <select id="modo">
+        <option value="1">Minimizar</option>
+        <option value="2">Maximizar</option>
+    </select>
+    <br>
+    <div>Função objetivo: </div>
+    {% for variavel in range(1, variaveis + 1) %}
+        {% if variavel == variaveis %}
+            <input type="number" id="objetivo{{variavel}}" value="0">X{{variavel}}
+        {% else %}
+            <input type="number" id="objetivo{{variavel}}" value="0">X{{variavel}} +
+        {% endif %}
+    {% endfor %}
+    <br>
+    <div>Restrições: </div>
+    {% for restricao in range(1, restricoes + 1) %}
+        {% for variavel in range(1, variaveis + 1) %}
+            {% if variavel == variaveis %}
+                <input type="number" id="restricao{{restricao}}-{{variavel}}" value="0">X{{variavel}}
+            {% else %}
+                <input type="number" id="restricao{{restricao}}-{{variavel}}" value="0">X{{variavel}} +
+            {% endif %}
+        {% endfor %}
+        <select id="operador{{restricao}}">
+            <option value="1">≤</option>
+            <option value="2">≥</option>
+            <option value="3">=</option>
+        </select>
+        <input type="number" id="resultado{{restricao}}" value="0">
+        <br>
+    {% endfor %}
+{% endblock %}

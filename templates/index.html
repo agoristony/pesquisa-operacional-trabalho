@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+    <div>Método: </div>
+    <select name="metodo" id="metodo">
+        <option value="1">Gráfico</option>
+        <option value="2">Simplex</option>
+    </select>
+    <div>Número de variáveis: </div>
+    <input type="number" name="num_variaveis" id="num_variaveis">
+    <div>Número de restrições: </div>
+    <input type="number" name="num_restricoes" id="num_restricoes">
+{% endblock %}
