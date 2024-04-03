@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 
 bp = Blueprint("pages", __name__)
 
@@ -6,6 +6,11 @@ bp = Blueprint("pages", __name__)
 def home():
     return render_template("index.html")
 
-@bp.route("/entrada")
+@bp.route("/entrada", methods=["GET","POST"])
 def entrada():
-    return render_template("entrada.html", variaveis = 3, restricoes = 2)
+    if request.method == "POST":
+        metodo = request.form["metodo"]
+        variaveis = int(request.form["num_variaveis"])
+        restricoes = int(request.form["num_restricoes"])
+        return render_template("entrada.html", variaveis = variaveis, restricoes = restricoes, metodo=metodo)
+

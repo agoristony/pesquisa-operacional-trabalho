@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<form action="/entrada" method="post">
     <div>Modo de otimização: </div>
     <select id="modo">
         <option value="1">Minimizar</option>
@@ -33,4 +34,6 @@
         <input type="number" id="resultado{{restricao}}" value="0">
         <br>
     {% endfor %}
+    <button type="submit">Enviar</button>
+</form>
 {% endblock %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<form action="/entrada" method="post">
     <div>Método: </div>
     <select name="metodo" id="metodo">
         <option value="1">Gráfico</option>
@@ -9,4 +10,7 @@
     <input type="number" name="num_variaveis" id="num_variaveis">
     <div>Número de restrições: </div>
     <input type="number" name="num_restricoes" id="num_restricoes">
+    <br>
+    <button> Próximo </button>
+</form>
 {% endblock %}
