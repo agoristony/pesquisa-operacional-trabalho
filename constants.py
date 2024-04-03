@@ -8,7 +8,7 @@ MINIMIZAR = -1
 MAXIMIZAR = 1
 OBJETIVOS = {MINIMIZAR: 'Minimizar', MAXIMIZAR: 'Maximizar'}
 
-IGUAL = 0
-MAIOR = 1
-MENOR = 2
-OPERADORES = {IGUAL: 'Igual', MAIOR: 'Maior', MENOR: 'Menor'}
+IGUAL = 3
+MAIOR = 2
+MENOR = 1
+OPERADORES = {IGUAL: '=', MAIOR: '>=', MENOR: '<='}
