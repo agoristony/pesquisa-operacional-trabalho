@@ -71,7 +71,7 @@ class ExpressionUtil:
         return len(collection) != len(set(collection))
     
     def __get_coefficient(self, monomial: str) -> str:
-        if value := re.findall(r"-?\d+", monomial):
+        if value := re.findall(r'^([+-]?\d*\.?\d+)(?=x)', monomial):
             return value[0]
         return "1"
     
@@ -92,17 +92,18 @@ class ExpressionUtil:
         splited = re.split(pattern, expression)
         return splited
     
-    def get_numeric_values(self, expression: str):
+    def get_numeric_values(self, expression: str, fo_variables: list):
         expression = self.__sanitize_expression(expression)
 
         self.__validate_variables(expression)
 
         algebraic_expressions = self.__get_algebraic_expressions(expression)
 
-        values = []
-        for variable in self.get_variables(expression):
+        values = {variable: 0 for variable in fo_variables}
+        for variable in fo_variables:
             for monomial in algebraic_expressions:
                 if variable in monomial:
                     value = self.__get_coefficient(monomial)
-                    values.append(value)
-        return [int(value) for value in values]
+                    values[variable] = value
+                    break           
+        return [float(value) for value in values.values()]

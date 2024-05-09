@@ -1,4 +1,5 @@
 
+from numpy import var
 from tabulate import tabulate
 from utils import Table, ExpressionUtil
 from fractions import Fraction
@@ -42,7 +43,8 @@ class Simplex:
         Retorna:
             list: Coeficientes da função objetivo."""
     def _build_objective_function(self, string_objective_function: str):
-        row = [coef * (-1) for coef in self.expression_util.get_numeric_values(string_objective_function)]
+        variables = self.expression_util.get_variables(string_objective_function)
+        row = [coef * (-1) for coef in self.expression_util.get_numeric_values(string_objective_function, fo_variables=variables)]
         return [1] + row
     
 
@@ -55,14 +57,13 @@ class Simplex:
 
         splitted_expression = expression.split(delimiter)
         constraint = [0] + self.expression_util.get_numeric_values(
-            splitted_expression[0]
+            splitted_expression[0], fo_variables=self.expression_util.get_variables(self.string_objective_function)
         )
-
         if not default_format:
             self.objective_function += [0]
         if delimiter == "<=":
             constraint = self.insert_slack_var(constraint, default_format)
-        self.column_b.append(int(splitted_expression[1]))
+        self.column_b.append(float(splitted_expression[1]))
         self.table.append(constraint)
         
     def get_entry_column(self) -> list:
@@ -151,7 +152,6 @@ class Simplex:
         """Insere variável de folga na restrição"""
         self.objective_function.append(0)
         variables = len(self.expression_util.get_variables(self.string_objective_function))
-
         if not self.table:
             row.append(1)
             self.inserted += 1
@@ -183,9 +183,9 @@ class Simplex:
         
 
 if __name__ == "__main__":
-    simplex = Simplex("3x1 + 2x2")
-    simplex.add_restriction("2x1 + 1x2 <= 18")
-    simplex.add_restriction("2x1 + 3x2 <= 42")
-    simplex.add_restriction("3x1 + 1x2 <= 24")
+    simplex = Simplex("1.2x1 + 1.7x2")
+    simplex.add_restriction("x1 <= 3000")
+    simplex.add_restriction("x2 <= 4000")
+    simplex.add_restriction("x1 + x2 <= 5000")
     print(simplex.solve())
 
