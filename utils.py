@@ -78,7 +78,7 @@ class ExpressionUtil:
     def __is_duplicated(self, collection) -> bool:
         return len(collection) != len(set(collection))
     
-    def __extract_numeric_value_from_monomial(self, monomial: str) -> str:
+    def __get_coefficient(self, monomial: str) -> str:
         if value := re.findall(r"-?\d+", monomial):
             return value[0]
         return "1"
@@ -87,7 +87,7 @@ class ExpressionUtil:
         pattern = "[a-z][0-9]+"
         return re.findall(pattern, expression)
     
-    def validate_variables(self, expression: str) -> None:
+    def __validate_variables(self, expression: str) -> None:
         variables = self.get_variables(expression)
         if self.__is_duplicated(variables):
             raise TypeError("Existe incógnitas repetidas na expressão informada")
@@ -95,23 +95,24 @@ class ExpressionUtil:
         if variables != sorted(variables):
             raise ValueError("Utilize incógnitas em sequência ordenada!")
     
-    def get_algebraic_expressions(self, expression: str):
+    def __get_algebraic_expressions(self, expression: str):
         pattern = ">=|\\+|\\-|<="
         splited = re.split(pattern, expression)
         return splited
     
-    def convert_in_calculable_expression(self, expression: str):
-        """Converte a expressão em um padrão calculável pelo algoritmo"""
+
+
+    def get_numeric_values(self, expression: str):
         expression = self.__sanitize_expression(expression)
 
-        self.validate_variables(expression)
+        self.__validate_variables(expression)
 
-        algebraic_expressions = self.get_algebraic_expressions(expression)
+        algebraic_expressions = self.__get_algebraic_expressions(expression)
 
         values = []
         for variable in self.get_variables(expression):
             for monomial in algebraic_expressions:
                 if variable in monomial:
-                    value = self.__extract_numeric_value_from_monomial(monomial)
+                    value = self.__get_coefficient(monomial)
                     values.append(value)
-        return list(map(int, values))
+        return [int(value) for value in values]

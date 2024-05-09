@@ -3,33 +3,24 @@ from tabulate import tabulate
 from utils import Table, ExpressionUtil
 from fractions import Fraction
 
-
-    
 class Simplex:
-    def __init__(self, literal_objective_function):
-        self.table = []
-        self.iterations = 0
-        self.pivot_column_index = 0
-        self.expression_util = ExpressionUtil()
-        self.literal_objective_function = literal_objective_function
-        self.column_b = [0]
-        self.inserted = 0
-        self.objective_function = self._build_objective_function(literal_objective_function)
-        self.basic_vars = []
+    def __init__(self, string_objective_function):
+        self.table = [] # armazena a tabela de valores do simplex
+        self.iterations = 0 # iteração atual 
+        self.pivot_column_index = 0 # coluna pivô atual
+        self.expression_util = ExpressionUtil() # utilitário de expressões(str -> list)
+        self.string_objective_function = string_objective_function # função objetivo em string
+        self.column_b = [0] # coluna b  
+        self.inserted = 0 # variáveis de folga inseridas
+        self.objective_function = self._build_objective_function(string_objective_function) # função objetivo em lista
+        self.basic_vars = [] # variáveis básicas 
 
-    def _build_objective_function(self, objective_function: str):
-        row = list(
-            map(
-                lambda value: value * (-1),
-                self.expression_util.convert_in_calculable_expression(objective_function),
-            )
-        )
+    def _build_objective_function(self, string_objective_function: str):
+        row = [coef * (-1) for coef in self.expression_util.get_numeric_values(string_objective_function)]
         return [1] + row
     
-    def set_objective_function(self, c: list):
-        self.table.append(c)
 
-    def add_restrictions(self, expression: str):
+    def add_restriction(self, expression: str):
         delimiter = "<="
         default_format = True
 
@@ -37,7 +28,7 @@ class Simplex:
         #     raise ValueError("Simplex Duas Fases não implementado!")
 
         splitted_expression = expression.split(delimiter)
-        constraint = [0] + self.expression_util.convert_in_calculable_expression(
+        constraint = [0] + self.expression_util.get_numeric_values(
             splitted_expression[0]
         )
 
@@ -85,6 +76,7 @@ class Simplex:
         return new_line
 
     def calculate(self, table: list) -> None:
+        self.iterations += 1
         column = self.get_entry_column()
         # linha que vai sair
         first_exit_line = self.get_pivot_line(column)
@@ -107,7 +99,6 @@ class Simplex:
         self.basic_vars[first_exit_line - 1] = f"x{self.pivot_column_index}"
 
         stack = table.copy()
-
         line_reference = len(stack) - 1
 
         while stack:
@@ -116,25 +107,20 @@ class Simplex:
             if line_reference != first_exit_line:
                 print(f'Linha: {line_reference}({self.basic_vars[line_reference -1]})' if line_reference != 0 else 'Linha: Z')
                 new_line = self.calculate_new_line(row, pivot_line)
-
                 table[line_reference] = new_line
 
             line_reference -= 1
-        self.iterations += 1
+        
         
 
     def solve(self):
         self.table = Table.normalize_table(self.objective_function, self.table, self.column_b)
         self.show_table()
-        self.calculate(self.table)
-        self.show_table()
         while not self.is_optimal():
             self.calculate(self.table)
-            
             self.show_table()
             
-        variables = self.expression_util.get_variables(self.literal_objective_function)
-        print(f'Resultados: {Table.get_results(self.table, variables)}')
+        variables = self.expression_util.get_variables(self.string_objective_function)
         return Table.get_results(self.table, variables)
     
     def is_optimal(self) -> bool:
@@ -143,7 +129,7 @@ class Simplex:
     def insert_slack_var(self, row: list, default_format=True):
         """Insere variável de folga na restrição"""
         self.objective_function.append(0)
-        variables = len(self.expression_util.get_variables(self.literal_objective_function))
+        variables = len(self.expression_util.get_variables(self.string_objective_function))
 
         if not self.table:
             row.append(1)
@@ -179,8 +165,8 @@ class Simplex:
 
 if __name__ == "__main__":
     simplex = Simplex("3x1 + 2x2")
-    simplex.add_restrictions("2x1 + 1x2 <= 18")
-    simplex.add_restrictions("2x1 + 3x2 <= 42")
-    simplex.add_restrictions("3x1 + 1x2 <= 24")
-    simplex.solve()
+    simplex.add_restriction("2x1 + 1x2 <= 18")
+    simplex.add_restriction("2x1 + 3x2 <= 42")
+    simplex.add_restriction("3x1 + 1x2 <= 24")
+    print(simplex.solve())
 
