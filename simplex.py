@@ -4,6 +4,23 @@ from utils import Table, ExpressionUtil
 from fractions import Fraction
 
 class Simplex:
+    """
+        Inicializa a classe Simplex com a função objetivo em string.
+
+        Args:
+            string_objective_function (str): Função objetivo em string.
+
+        Inicializa as seguintes variáveis de instância:
+            - table (list): Armazena os valores da tabela simplex.
+            - iterations (int): Armazena o número da iteração atual.
+            - pivot_column_index (int): Armazena o índice da coluna pivô atual.
+            - expression_util (ExpressionUtil): Utilitário para converter strings em listas.
+            - string_objective_function (str): Função objetivo em string.
+            - column_b (list): Armazena os valores da coluna b.
+            - inserted (int): Armazena o número de variáveis de folga inseridas.
+            - objective_function (list): Armazena a função objetivo como uma lista.
+            - basic_vars (list): Armazena as variáveis básicas.
+    """
     def __init__(self, string_objective_function):
         self.table = [] # armazena a tabela de valores do simplex
         self.iterations = 0 # iteração atual 
@@ -14,7 +31,16 @@ class Simplex:
         self.inserted = 0 # variáveis de folga inseridas
         self.objective_function = self._build_objective_function(string_objective_function) # função objetivo em lista
         self.basic_vars = [] # variáveis básicas 
+        self.entering_vars = [] # variáveis de entrada
+        self.leaving_vars = [] # variáveis de saída
+        
 
+
+    """"Constrói a função objetivo em lista.
+        Args:
+            string_objective_function (str): Função objetivo em string.
+        Retorna:
+            list: Coeficientes da função objetivo."""
     def _build_objective_function(self, string_objective_function: str):
         row = [coef * (-1) for coef in self.expression_util.get_numeric_values(string_objective_function)]
         return [1] + row
@@ -38,6 +64,7 @@ class Simplex:
             constraint = self.insert_slack_var(constraint, default_format)
         self.column_b.append(int(splitted_expression[1]))
         self.table.append(constraint)
+        
     def get_entry_column(self) -> list:
         """Define a coluna pivô"""
         pivot_column = min(self.table[0])
@@ -61,16 +88,8 @@ class Simplex:
 
 
     def calculate_new_line(self, row: list, pivot_line: list) -> list:
-        """
-        Calcula a nova linha que será substituída na tabela
-        row (list) -> linha que será trocada
-        pivot_line (list) -> linha pivô
-        """
-
         pivot = row[self.pivot_column_index] * -1
-
         result_line = [pivot * value for value in pivot_line]
-
         new_line = [new_value + old_value for new_value, old_value in zip(result_line, row)]
         self.print_line_operation(row, pivot_line, new_line)
         return new_line
@@ -84,7 +103,9 @@ class Simplex:
         line = table[first_exit_line]
         # identificando o pivo da linha que vai sair
         pivot = line[self.pivot_column_index]
-        print(f'A variavel que sai da base é a {self.basic_vars[first_exit_line - 1]} e a que entra é x{self.pivot_column_index}')
+        self.entering_vars.append(f"x{self.pivot_column_index}")
+        self.leaving_vars.append(self.basic_vars[first_exit_line - 1])
+        print(f'A variavel que sai da base é a {self.entering_vars[self.iterations - 1]} e a que entra é {self.leaving_vars[self.iterations - 1]}')
 
 
         # calculando nova linha pivô
@@ -160,8 +181,6 @@ class Simplex:
         print(f'Iteração {self.iterations}')
         print(tabulate(table_copy, tablefmt="fancy_grid", headers=["Base", "Z"] + [f"x{i}" for i in range(1, len(table_copy[0]) - 2)] + ["b"]))
         
-
-
 
 if __name__ == "__main__":
     simplex = Simplex("3x1 + 2x2")
