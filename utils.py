@@ -1,8 +1,6 @@
 from typing import Any, Dict, List
 import re
 
-from tabulate import tabulate
-
 class Table:
     @classmethod
     def _get_solution(cls, table: List[List[int]]) -> int:
@@ -71,7 +69,8 @@ class ExpressionUtil:
         return len(collection) != len(set(collection))
     
     def __get_coefficient(self, monomial: str) -> str:
-        if value := re.findall(r'^([+-]?\d*\.?\d+)(?=x)', monomial):
+        if value := re.findall(r'^([+-]?\d*\.?\d+)', monomial):
+            print(value[0], monomial)
             return value[0]
         return "1"
     
@@ -88,8 +87,9 @@ class ExpressionUtil:
             raise ValueError("Utilize incógnitas em sequência ordenada!")
     
     def __get_algebraic_expressions(self, expression: str):
-        pattern = ">=|\\+|\\-|<="
+        pattern = ">=|\\+|<="
         splited = re.split(pattern, expression)
+        print(splited, expression)
         return splited
     
     def get_numeric_values(self, expression: str, fo_variables: list):
@@ -98,7 +98,6 @@ class ExpressionUtil:
         self.__validate_variables(expression)
 
         algebraic_expressions = self.__get_algebraic_expressions(expression)
-
         values = {variable: 0 for variable in fo_variables}
         for variable in fo_variables:
             for monomial in algebraic_expressions:
