@@ -70,7 +70,6 @@ class ExpressionUtil:
     
     def __get_coefficient(self, monomial: str) -> str:
         if value := re.findall(r'^([+-]?\d*\.?\d+)', monomial):
-            print(value[0], monomial)
             return value[0]
         return "1"
     
@@ -87,10 +86,18 @@ class ExpressionUtil:
             raise ValueError("Utilize incógnitas em sequência ordenada!")
     
     def __get_algebraic_expressions(self, expression: str):
-        pattern = ">=|\\+|<="
-        splited = re.split(pattern, expression)
-        print(splited, expression)
-        return splited
+        # pattern = ">=|\\+|\\-|<="
+        negative_pattern = "([+-])"
+        splitted = re.split(negative_pattern, expression)
+        for i in range(len(splitted)):
+            if splitted[i] == "-":
+                splitted[i+1] = splitted[i] + splitted[i+1]
+                splitted[i] = ""
+            elif splitted[i] == "+":
+                splitted[i] = ""
+            
+        splitted = list(filter(None, splitted))
+        return splitted
     
     def get_numeric_values(self, expression: str, fo_variables: list):
         expression = self.__sanitize_expression(expression)

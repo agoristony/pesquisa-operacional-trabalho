@@ -1,3 +1,5 @@
+from importlib import simple
+from sympy import Symbol, solve
 from tabulate import tabulate
 from utils import Table, ExpressionUtil
 from fractions import Fraction
@@ -32,6 +34,10 @@ class Simplex:
         self.inserted = 0 # variáveis de folga inseridas
         self.objective_function = self._build_objective_function(string_objective_function) # função objetivo em lista
         self.basic_vars = [] # variáveis básicas 
+        self.slack_vars = [] # variáveis de folga
+        self.excess_vars = [] # variáveis de excesso
+        self.artificial_vars = [] # variáveis artificiais
+        self.first_phase = False # primeira fase
         self.entering_vars = [] # variáveis de entrada
         self.leaving_vars = [] # variáveis de saída
         
@@ -47,14 +53,13 @@ class Simplex:
         row = [coef * (-1) for coef in self.expression_util.get_numeric_values(string_objective_function, fo_variables=variables)]
         return [1] + row
     
+    def is_simplex_standard(self, constraint: str) -> bool:
+        """Verifica se a restrição está no padrão do simplex"""
+        return "<=" in constraint and self.objective == Objective.MAX.value
 
     def add_restriction(self, expression: str):
-        delimiter = "<="
+        delimiter = "<=" if "<=" in expression else ">=" if ">=" in expression else "="
         default_format = True
-
-        # if not self.is_simplex_standard(expression):
-        #     raise ValueError("Simplex Duas Fases não implementado!")
-
         splitted_expression = expression.split(delimiter)
         constraint = [0] + self.expression_util.get_numeric_values(
             splitted_expression[0], fo_variables=self.expression_util.get_variables(self.string_objective_function)
@@ -63,30 +68,19 @@ class Simplex:
             self.objective_function += [0]
         if delimiter == "<=":
             constraint = self.insert_slack_var(constraint, default_format)
+        elif delimiter == "=":
+            constraint = self.insert_artificial_var(constraint, default_format)
+        elif delimiter == ">=":
+            row = self.insert_artificial_var(constraint, default_format)
+            constraint = self.insert_excess_var(row, default_format)
+        print(f'Expressão: {expression} -> {constraint} -> {splitted_expression}')    
+        
         self.column_b.append(float(splitted_expression[1]))
         self.table.append(constraint)
+        print(f'Tabela: {self.table}')
 
-    def get_dual(self):
-        # Extrai o número de variáveis primais e restrições
-        num_primal_vars = len(self.objective_function) - 1
-        num_constraints = len(self.table)
+        
 
-        # Prepara a função objetivo dual (coeficientes são os valores da coluna b)
-        dual_obj_coeffs = [str(self.column_b[i]) + "x" + str(i+1) for i in range(num_constraints)]
-        dual_obj_function = " + ".join(dual_obj_coeffs)
-
-        # Criar uma nova instância de Simplex para representar o problema dual
-        dual_simplex = Simplex(dual_obj_function)
-
-        # Transpor a tabela para obter os coeficientes das restrições
-        for j in range(num_primal_vars):
-            dual_constraint_coeffs = [self.table[i][j+1] for i in range(num_constraints)]  # Pula o primeiro elemento (coeficiente da variável)
-            rhs_value = self.objective_function[j+1]  # Coeficiente da variável na função objetivo
-            dual_constraint_expr = " + ".join([f"{coeff}x{i+1}" for i, coeff in enumerate(dual_constraint_coeffs)])
-            dual_constraint = f"{dual_constraint_expr} <= {rhs_value}"
-            dual_simplex.add_restriction(dual_constraint)
-
-        return dual_simplex
     
     def get_entry_column(self) -> list:
         """Define a coluna pivô"""
@@ -98,8 +92,9 @@ class Simplex:
         """identifica a linha que sai"""
         results = {}
         for line in range(1, len(self.table)):
-            if self.table[line][entry_column] > 0:
-                results[line] = self.table[line][-1] / self.table[line][entry_column]
+            if self.table[line][entry_column-1] > 0:
+                results[line] = self.table[line][-1] / self.table[line][entry_column-1]
+        print(f'Coluna pivô: x{entry_column-1}, resultados: {results}')
         return min(results, key=results.get)
     
     def print_line_operation(self, row: list, pivot_line: list, new_line: list):
@@ -159,8 +154,6 @@ class Simplex:
 
             line_reference -= 1
         
-        
-
     def solve(self):
         self.table = Table.normalize_table(self.objective_function, self.table, self.column_b)
         self.show_table()
@@ -182,6 +175,7 @@ class Simplex:
             row.append(1)
             self.inserted += 1
             self.basic_vars += [f"x{variables + self.inserted}"]
+            self.slack_vars += [f"x{variables + self.inserted}"]
             return row
         
         limit = len(self.table[self.inserted - 1]) - len(row)
@@ -196,8 +190,57 @@ class Simplex:
 
         self.inserted += 1
         self.basic_vars += [f"x{variables + self.inserted}"]
+        self.slack_vars += [f"x{variables + self.inserted}"]
         return row
     
+    def insert_artificial_var(self, row: list, default_format=True):
+        """Insere variável artificial na restrição"""
+        self.objective_function.append(0)
+        print(row)
+        variables = len(self.expression_util.get_variables(self.string_objective_function))
+        if not self.table:
+            row.append(1)
+            self.inserted += 1
+            self.basic_vars += [f"x{variables + self.inserted}"]
+            self.artificial_vars += [f"x{variables + self.inserted}"]
+            return row
+        print(self.table, self.inserted)
+        print(len(self.table))
+        limit = len(self.table[self.inserted - len(self.excess_vars) - 1]) - len(row)
+        for _ in range(limit):
+            row.append(0)
+        if not default_format:
+            row = row + [1, 1]
+        else:
+            row.append(1)
+        self.inserted += 1
+        self.basic_vars += [f"x{variables + self.inserted}"]
+        self.artificial_vars += [f"x{variables + self.inserted}"]
+        return row
+
+    def insert_excess_var(self, row: list, default_format=True):
+        """Insere variável de excesso na restrição"""
+        self.objective_function.append(0)
+        variables = len(self.expression_util.get_variables(self.string_objective_function))
+        if not self.table:
+            row.append(1)
+            self.inserted += 1
+            self.basic_vars += [f"x{variables + self.inserted}"]
+            self.excess_vars += [f"x{variables + self.inserted}"]
+            return row
+        limit = len(self.table[self.inserted - len(self.artificial_vars) - 1]) - len(row)
+        for _ in range(limit):
+            row.append(0)
+        if not default_format:
+            row = row + [1, -1]
+        else:
+            row.append(-1)
+        self.inserted += 1
+        self.basic_vars += [f"x{variables + self.inserted}"]
+        self.excess_vars += [f"x{variables + self.inserted}"]
+        
+        return row
+
     def show_table(self):
         table_copy = self.table.copy()
         basic_vars = self.basic_vars.copy()
@@ -205,70 +248,113 @@ class Simplex:
         for i in range(1, len(table_copy)):
             table_copy[i] = basic_vars[i-1:i ] + table_copy[i]
         print(f'Iteração {self.iterations}')
-        print(tabulate(table_copy, tablefmt="fancy_grid", headers=["Base", "Z"] + [f"x{i}" for i in range(1, len(table_copy[0]) - 2)] + ["b"]))
-    
+        print(tabulate(table_copy, tablefmt="fancy_grid", headers=["Base", "Z"] + [f'x{i}' for i in range(1, len(table_copy[0]) - 2)] + ["b"]))
     def integer_solution(self):
         pass
     
-class LinearProgrammingPlotter:
-    @staticmethod
-    def plot_solution(objective_function, constraints):
-        obj_coeffs = LinearProgrammingPlotter.parse_expression(objective_function)
-        
-        max_x1 = max_x2 = 0
-        for constraint in constraints:
-            parts = constraint.split(' ')
-            coeffs, rhs = LinearProgrammingPlotter.parse_expression(parts[0]), float(parts[-1])
-            max_x1 = max(max_x1, rhs / abs(coeffs[0]) if coeffs[0] != 0 else 0)
-            max_x2 = max(max_x2, rhs / abs(coeffs[1]) if coeffs[1] != 0 else 0)
+    def two_phase(self):
+        num_variaveis = len(self.expression_util.get_variables(self.string_objective_function)) + self.inserted
+        objective_function = self.objective_function[1:]
+        constraints = self.table
+        print(f'Objetivo: {objective_function}')
+        print(f'Restrições: {constraints}')
 
-        max_x1, max_x2 = math.ceil(max_x1) + 10, math.ceil(max_x2) + 10
-        
-        x1 = np.linspace(0, max_x1, 400)
-        x2 = np.linspace(0, max_x2, 400)
-        X1, X2 = np.meshgrid(x1, x2)
+        # 1a fase
+        new_objective = [0] * num_variaveis
+        for i in range(num_variaveis):
+            if f'x{i+1}' in self.artificial_vars:
+                new_objective[i] = -1
+        self.objective_function =  [1] + new_objective
+        print(f'Objetivo 1a fase: {self.objective_function}')
+        print(self.solve())
 
-        fig, ax = plt.subplots()
-        feasible_set = np.zeros(X1.shape, dtype=bool)
-        
-        for constraint in constraints:
-            parts = constraint.split(' ')
-            coeffs, rhs = LinearProgrammingPlotter.parse_expression(parts[0]), float(parts[-1])
-            if '<=' in constraint:
-                condition = coeffs[0] * X1 + coeffs[1] * X2 <= rhs
-            elif '>=' in constraint:
-                condition = coeffs[0] * X1 + coeffs[1] * X2 >= rhs
-            else:
-                continue 
-            
-            feasible_set |= condition
-            ax.contour(X1, X2, coeffs[0] * X1 + coeffs[1] * X2 - rhs, levels=0, colors='k')
-        
-        ax.imshow(feasible_set, extent=(X1.min(), X1.max(), X2.min(), X2.max()), origin='lower', alpha=0.3)
+def get_bound(x1, x2, limit):
+    x_1 = [limit/x1 if x1 != 0 else limit, 0.0]
+    x_2 = [0.0, limit/x2]
+    return x_1, x_2
 
-        z_func = lambda x1, z: (z - obj_coeffs[0] * x1) / obj_coeffs[1]
-        z_values = [min(obj_coeffs) * 20, max(obj_coeffs) * 20]
-        for z in z_values:
-            ax.plot(x1, z_func(x1, z), 'r--')
 
-        ax.set_xlim([0, max_x1])
-        ax.set_ylim([0, max_x2])
-        ax.set_xlabel('x1')
-        ax.set_ylabel('x2')
-        ax.set_title(objective_function)
-        plt.show()
+def SolucaoGrafica(problem: Simplex):
+    s1 = Symbol("x1")
+    s2 = Symbol("x2")
 
-    @staticmethod
-    def parse_expression(expression):
-        terms = expression.replace('-', '+-').split('+')
-        coeffs = [0, 0]
-        for term in terms:
-            if 'x1' in term:
-                coeffs[0] = float(term.replace('x1', ''))
-            elif 'x2' in term:
-                coeffs[1] = float(term.replace('x2', ''))
-        return coeffs
+    # armazena 
+    constraints = [constraint[1:problem.inserted+1] + [problem.column_b[i+1]] for i, constraint in enumerate(problem.table)]
+    print(constraints)
+    constraints = [(constraint[0], constraint[1], constraint[2]) for constraint in constraints]
+    objective = [num * -1 for num in problem.objective_function[1:3]]
 
+    # Inicializa listas para armazenar os limites das restrições.
+    bounds_x = []
+    bounds_y = []
+    constraint_formulas = []
+
+    # Get bounds (points) for constraints.
+    for constraint in constraints:
+        x, y = get_bound(constraint[0], constraint[1], constraint[2])
+        bounds_x.append(x)
+        bounds_y.append(y)
+        constraint_formulas.append(constraint[0] * s1 + constraint[1] * s2 - constraint[2])
+
+    feasible_region_points = []
+    for i in range(len(constraint_formulas)):
+        for j in range(i + 1, len(constraint_formulas)):
+            solution = solve((constraint_formulas[i], constraint_formulas[j]), (s1, s2), dict=True)
+            if solution:
+                feasible_region_points.append((solution[0][s1], solution[0][s2]))
+
+    feasible_region_points.extend([(0, 0)] + [(0, bound[1]) for bound in bounds_y if bound[1] != 0] + [(bound[0], 0) for bound in bounds_x if bound[0] != 0])
+
+    # Filter out negative points and points that do not satisfy all constraints.
+    feasible_region_points = [
+        (x, y) for x, y in feasible_region_points
+        if x >= 0 and y >= 0 and all(constraint.subs({s1: x, s2: y}) <= 0 for constraint in constraint_formulas)
+    ]
+    print(bounds_x, bounds_y)
+
+    # Find the optimal point for the objective function.
+    x1_profit, x2_profit = objective
+    max_profit_formula = x1_profit * s1 + x2_profit * s2
+    print([max_profit_formula.subs({'x1': point[0], 'x2': point[1]}) for point in feasible_region_points])
+    optimal_point = max(feasible_region_points, key=lambda point: max_profit_formula.subs({'x1': point[0], 'x2': point[1]}))
+
+    max_profit = float(max_profit_formula.subs({'x1': optimal_point[0], 'x2': optimal_point[1]}))
+
+    # Plot all constraints.
+    colors = ['darkgreen', 'darkblue', 'darkred', 'darkorange', 'purple']
+    print(bounds_x, bounds_y, constraint_formulas)
+    for i, (x, y, constraint) in enumerate(zip(bounds_x, bounds_y, constraint_formulas)):
+        plt.plot(x, y, linestyle=':', marker='o', color=colors[i % len(colors)])
+        plt.annotate(
+            constraint,
+            (x[1], y[1])
+        )
+
+    # Plot bounds for x1 >= 0 and x2 >= 0.
+    plt.plot(0, 0, marker='o')
+    plt.plot([0, 0], [max([b[1] for b in bounds_y]), 0], linestyle=':', color='grey')
+    plt.plot([max([b[0] for b in bounds_x]), 0], [0, 0], linestyle=':', color='grey')
+
+    feasible_region_points = sorted(feasible_region_points, key=lambda x: x[0])
+    feasible_region_points.append((0, 0))
+    x, y = zip(*feasible_region_points)
+    plt.fill(x, y, 'lightgrey', alpha=0.5)
+
+    # Plot point for maximum profit.
+    plt.plot(optimal_point[0], optimal_point[1], marker='o', color='red')
+
+    # plot the objective function curve
+    x = np.linspace(0, 10, 100)
+    y = (max_profit - objective[0] * x) / objective[1]
+    plt.plot(x, y, label=f"{objective[0]}x1 + {objective[1]}x2 = {max_profit}", color='red')
+
+    # Draw X and Y axis labels.
+    plt.xlabel(f"x1", color='darkblue')
+    plt.ylabel(f"x2", color='darkgreen')
+    # Render plot.
+    plt.show()
+
+    
 
 def branch_and_bound():
     """"
@@ -285,11 +371,24 @@ def branch_and_bound():
     """
 
 if __name__ == "__main__":
-    objective = "1x1 + 4x2"
-    constraints = ["-2x1 + 4x2 <= 8", "2x1 + 3x2 <= 12"]
+    objective = "3x1 + 4x2"
+    constraints = ["2x1 + 1x2 <= 600",
+                   "1x1 + 1x2 <= 225",
+                   "5x1 + 4x2 <= 1000",
+                   "x1 + 2x2 >= 150"
+                   ]
     simplex = Simplex(objective)
     for constraint in constraints:
         simplex.add_restriction(constraint)
-    print(simplex.solve())
-    # print(simplex.get_dual().solve())
-    LinearProgrammingPlotter.plot_solution(objective, constraints)
+    print(f'Problema: {objective}')
+    print(f'Restrições: {constraints}')
+    print(f'Variáveis de folga: {simplex.slack_vars}')
+    print(f'Variáveis básicas: {simplex.basic_vars}')
+    print(f'Variáveis artificiais: {simplex.artificial_vars}')
+    print(f'Variáveis de excesso: {simplex.excess_vars}')
+    
+    
+    # SolucaoGrafica(simplex)
+    # print(simplex.solve())
+    simplex.two_phase()
+    # LinearProgrammingPlotter.plot_solution(objective, constraints)
