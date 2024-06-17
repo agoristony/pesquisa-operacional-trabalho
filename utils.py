@@ -7,10 +7,7 @@ import numpy as np
 class Table:
     @classmethod
     def _get_solution(cls, table: List[List[int]]) -> int:
-        for row in table:
-            if row[0] == 1:
-                return row[-1]
-        return 0
+        return table[0][-1]
 
     @classmethod
     def _get_basic_vars(cls, table: List[List[int]]) -> list:
@@ -46,7 +43,6 @@ class Table:
         result = {
             "solucao": cls._get_solution(table),
         }
-        basic_variables.remove(0)
         try:
             for index in basic_variables:
                 variable = variables[index - 1]
@@ -184,10 +180,10 @@ def graphical_solution(problem):
     max_profit = float(max_profit_formula.subs({'x1': optimal_point[0], 'x2': optimal_point[1]}))
     
     # plotar os pontos de intersecção
-    points = [crossing_point(constraint1, constraint2) for constraint1 in constraints for constraint2 in constraints if constraint1 != constraint2]
-    for point in points:
-        if point[0] >= 0 and point[1] >= 0:
-            plt.plot(*point, marker='o', color='black')
+    # points = [crossing_point(constraint1, constraint2) for constraint1 in constraints for constraint2 in constraints if constraint1 != constraint2]
+    # for point in points:
+    #     if point[0] >= 0 and point[1] >= 0:
+    #         plt.plot(*point, marker='o', color='black')
 
     # plotar as restrições
     colors = ['darkgreen', 'darkblue', 'darkred', 'darkorange', 'purple']

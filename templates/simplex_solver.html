@@ -1,0 +1,51 @@
+{% if solution %}
+<div id="solucao">
+    <div class="p-4">
+        <h2 class="text-2xl font-bold">Solucao</h2>
+        <p class="text-lg font-semibold">Valor da funcao objetivo: {{ solution['solucao']['solucao'] }}</p>
+        <p class="text-lg font-semibold">Variaveis:</p>
+        <ul>
+            {% for key, value in solution['solucao'].items() %}
+                {% if key != 'solucao' %}
+                    <li>{{ key }}: {{ value }}</li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+        <p class="text-lg font-semibold">Iteracoes:</p>
+        <ul>
+            {% for iteracao in solution['iteracoes'] %}
+                <li>
+                    <p class="font-bold p-4">Iteracao {{ iteracao['iteracao'] }}</p>
+                    <table class="table-auto w-full mx-auto justify-center">
+                        <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md">Base</th>
+                                {% for j in iteracao['header_vars'] %}
+                                    <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md ">
+                                        {{ j }}
+                                    </th>
+                                {% endfor %}
+                                <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md">b</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in iteracao['table'] %}
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 {{ 'bg-green-100' if loop.index0 == iteracao['pivot_line_index'] else '' }}">
+                                    <td class="p-2 border border-gray-300 text-sm rounded-md">{{ iteracao['basic_vars'][loop.index0-1] if loop.index0 != 0 else 'Z' }}</td>
+                                    {% for value in line %}
+                                        <td class="p-2 border border-gray-300 text-sm rounded-md {{ 'bg-green-100' if loop.index0 == iteracao['pivot_column_index'] else '' }}">
+                                           <span class="text-xs"
+                                           >{{ value | round(2) }}</span>
+                                            
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}

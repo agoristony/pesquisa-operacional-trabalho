@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mx-auto" x-data="{ variaveis: 0, tipoSimplex: 'generalizado', tipoProblema: 'max', tabela: [] }">
+    <h1 class="text-3xl font-bold p-4">Simplex</h1>
+    <div class="p-4">
+    <form class="flex flex-col mx-auto space-y-4 w-3/4">
+        <label for="variaveis" class="text-xs font-bold">Numero de variaveis</label>
+        <input type="number" class="p-2 border border-gray-300 text-sm rounded-md" placeholder="Numero de variaveis" name="variaveis" id="variaveis" x-model="variaveis">
+        <label for="tipoSimplex" class="text-xs font-bold">Tipo de Simplex</label>
+        <select name="tipoSimplex" id="tipoSimplex" class="p-2 border border-gray-300 text-sm rounded-md" x-model="tipoSimplex">
+            <option value="generalizado">Generalizado</option>
+            <option value="duasFases">Duas Fases</option>
+        </select>
+        <label for="tipoProblema" class="text-xs font-bold">Tipo de Problema</label>
+        <select name="tipoProblema" id="tipoProblema" class="p-2 border border-gray-300 text-sm rounded-md" x-model="tipoProblema">
+            <option value="max">Maximizacao</option>
+            <option value="min">Minimizacao</option>
+        </select>
+        <button class="p-2 w-60 border rounded-md" hx-post="/simplex_form" hx-trigger="click" hx-target="#tabela" hx-swap="outerHTML" hx-indicator="true">Novo Problema</button>
+    </form>
+    <div id="tabela" class="p-4">
+    </div>
+</div>
+{% endblock %}
