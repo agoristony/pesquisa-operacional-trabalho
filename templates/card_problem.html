@@ -1,0 +1,18 @@
+<a href="#" class="block max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 {{ 'bg-green-100' if problema['integer_solution'] else '' }}">
+
+    <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Z = {{ problema['simplex'].string_objective_function }}</h5>
+    <p class="font-normal text-gray-700 dark:text-gray-400">Sujeito a:</p>
+    <ul class="list-inside p-2">
+        {% for restricao in problema['simplex'].restriction_strings %}
+        <li class="font-normal px-2 text-gray-700 dark:text-gray-400">{{ restricao }}</li>
+        {% endfor %}
+    </ul>
+    {% for key, value in problema['solution']['solucao'].items() %}
+    <p class="font-normal text-gray-700 dark:text-gray-400"><span class="font-bold">{{ key }}</span> = {{ value }}</p>
+    {% endfor %}
+    <div class="w-full h-0.5 bg-gray-200 my-4"></div>
+    <div class="grid text-center grid-cols-2 gap-4">
+        <p class="font-normal text-red-700 dark:text-gray-400">{{ problema['lower_bound_simplex'] }}</p>
+        <p class="font-normal text-green-700 dark:text-gray-400">{{ problema['upper_bound_simplex'] }}</p>
+    </div>
+</a>

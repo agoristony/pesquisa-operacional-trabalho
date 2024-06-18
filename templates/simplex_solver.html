@@ -1,21 +1,48 @@
 {% if solution %}
 <div id="solucao">
     <div class="p-4">
-        <h2 class="text-2xl font-bold">Solucao</h2>
-        <p class="text-lg font-semibold">Valor da funcao objetivo: {{ solution['solucao']['solucao'] }}</p>
-        <p class="text-lg font-semibold">Variaveis:</p>
-        <ul>
-            {% for key, value in solution['solucao'].items() %}
-                {% if key != 'solucao' %}
-                    <li>{{ key }}: {{ value }}</li>
-                {% endif %}
-            {% endfor %}
-        </ul>
+        
+        <h2 class="text-2xl p-2 font-bold">Solução</h2>
+        <p class="text-2xl p-2 text-green-500 font-light">Z = {{ solution['solucao']['solucao'] }}</p>
+        <p class="text-lg p-2 font-semibold">Solução Ótima {{'inteira' if solution['solucao_inteira'] else ''}}.
+
+            {% if not solution['solucao_inteira'] %}
+                <br>
+                <button class="p-2 text-xs border rounded-xl" hx-swap="outerHTML" hx-indicator="true">Branch-and-bound ></button>
+            {% endif %}
+        </p>
+        
+        <div class="inline-flex">
+            <div>
+            <p class="text-lg p-2 font-semibold">Variaveis básicas:</p>
+            <ul class="p-4">
+                {% for key, value in solution['solucao'].items() %}
+                    {% if key != 'solucao' %}
+                        <li class="text-xs">{{ key }} = {{ value }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+            </div>
+        </div>
         <p class="text-lg font-semibold">Iteracoes:</p>
         <ul>
             {% for iteracao in solution['iteracoes'] %}
                 <li>
                     <p class="font-bold p-4">Iteracao {{ iteracao['iteracao'] }}</p>
+                    {% if iteracao['operacoes'] %}
+                    <div class="inline-flex">
+                    {% for linha in iteracao['operacoes'] %}
+                        <div class="p-4">
+                        {% for op in linha %}
+                            {% if op[0] == 'W'%}
+                                <p class="p-2 font-semibold text-sm">2a Fase</p>
+                            {% endif %}
+                            <p class="p-2 text-xs {{ 'font-semibold' if loop.index0 == 0 or op[0] == 'Z' else '' }}">{{ op }}</p>
+                        {% endfor %}
+                        </div>
+                    {% endfor %}
+                    </div>
+                    {% endif %}
                     <table class="table-auto w-full mx-auto justify-center">
                         <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                             <tr>

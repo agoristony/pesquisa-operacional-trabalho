@@ -28,6 +28,12 @@
                         <input type="number" class="block w-full px-4 py-3 mb-4 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'c' + j" :id="'c' + j">
                     </td>
                 </template>
+                <td class="p-2 text-sm rounded-md">
+                    <select name="tipoProblema" id="tipoProblema" class="w-full p-2 overflow-auto text-sm bg-white rounded-md shadow-md max-h-56 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <option value="max">Max</option>
+                        <option value="min">Min</option>
+                    </select>
+                </td>
             </tr>
             <template x-for="i in restricoes" :key="i">
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
@@ -61,9 +67,11 @@
     </button>
     </div>
     <div class="inline-flex rounded-md justify-center">
+        {% block resolver %}
         <button type="button" class="p-2 border justify-center w-60 rounded-md" hx-post="/simplex_solver" hx-target="#solucao" hx-swap="outerHTML" hx-indicator="true">
             Resolver >
         </button>
+        {% endblock %}
     </div>
   
     

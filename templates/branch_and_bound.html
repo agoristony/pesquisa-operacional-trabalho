@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mx-auto" x-data="{ variaveis: 0, tipoSimplex: 'generalizado', tipoProblema: 'max', tabela: [] }">
-    <h1 class="text-3xl font-bold p-4">Simplex</h1>
+    <h1 class="text-3xl font-bold p-4">Branch and bound</h1>
     <div class="p-4">
     <form class="flex flex-col mx-auto space-y-4 w-3/4">
         <label for="variaveis" class="text-xs font-bold">Numero de variaveis</label>
         <input type="number" class="p-2 border border-gray-300 text-sm rounded-md" placeholder="Numero de variaveis" name="variaveis" id="variaveis" x-model="variaveis">
-        <button class="p-2 w-60 border rounded-md" hx-post="/simplex_form" hx-trigger="click" hx-target="#tabela" hx-swap="outerHTML" hx-indicator="true">Novo Problema</button>
+        <button class="p-2 w-60 border rounded-md" hx-post="/branch_and_bound_form" hx-trigger="click" hx-target="#tabela" hx-swap="outerHTML" hx-indicator="true">Novo Problema</button>
     </form>
     <div id="tabela" class="p-4">
     </div>
