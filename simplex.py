@@ -1,9 +1,6 @@
-from atexit import register
-from pyparsing import col
 from tabulate import tabulate
-from utils import Table, ExpressionUtil, graphical_solution, primal_to_dual
+from utils import Table, ExpressionUtil
 from fractions import Fraction
-import matplotlib.pyplot as plt
 import numpy as np
 
 
