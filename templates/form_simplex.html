@@ -25,7 +25,7 @@
                 <td class="font-bold text-center text-xs" x-text="'Objetivo'"></td>
                 <template x-for="j in variaveis" :key="j">
                     <td class="p-2 border-gray-300 text-sm rounded-md">
-                        <input type="number" class="block w-full px-4 py-3 mb-4 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'c' + j" :id="'c' + j">
+                        <input type="number" class="block w-full px-4 py-3 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'c' + j" :id="'c' + j">
                     </td>
                 </template>
                 <td class="p-2 text-sm rounded-md">
@@ -40,7 +40,7 @@
                     <td class="font-bold text-xs text-center" x-text="'Restricao ' + i"></td>
                     <template x-for="j in variaveis" :key="j">
                         <td class="p-2 border-gray-300 text-sm rounded-md">
-                            <input type="number" class="block w-full px-4 py-3 mb-4 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'a' + i + j" :id="'a' + i + j">
+                            <input type="number" class="block w-full px-4 py-3 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'a' + i + j" :id="'a' + i + j">
                         </td>
                     </template>
                     <td class="p-2 border-gray-300 flex text-sm rounded-md">
@@ -51,7 +51,7 @@
                         </select>
                     </td>
                     <td class="p-2 border-gray-300 text-sm rounded-md">
-                        <input type="number" class="block w-full px-4 py-3 mb-4 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'b' + i" :id="'b' + i">
+                        <input type="number" class="block w-full px-4 py-3 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'b' + i" :id="'b' + i">
                     </td>
                 </tr>
             </template>
