@@ -1,6 +1,6 @@
 {% extends "form_simplex.html" %}
 {% block resolver %}
-<button type="button" class="p-2 border justify-center w-60 rounded-md" hx-post="/branch_and_bound_solver" hx-target="#solucao" hx-swap="outerHTML" hx-indicator="true">
+<button type="button" class="p-2 border justify-center bg-orange-200 w-60 rounded-md" hx-post="/branch_and_bound_solver" hx-target="#solucao" hx-swap="outerHTML" hx-indicator="true">
     Resolver >
 </button>
 {% endblock %}

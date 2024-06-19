@@ -123,13 +123,13 @@ class Simplex:
         return min(results, key=results.get)
     
     def print_line_operation(self, row: list, pivot_line: list, new_line: list, pivot: int = 0):
-        row_fraction = [Fraction(value).limit_denominator() for value in row]
-        pivot_line_fraction = [Fraction(value).limit_denominator() for value in pivot_line]
-        new_line_fraction = [Fraction(value).limit_denominator() for value in new_line]
+        row_fraction = [Fraction(value).limit_denominator(2) for value in row]
+        pivot_line_fraction = [Fraction(value).limit_denominator(2) for value in pivot_line]
+        new_line_fraction = [Fraction(value).limit_denominator(2) for value in new_line]
         operation = []
         try:
             for i in range(len(row)):
-                operation.append(f'{row_fraction[i]} - ({round(pivot,6)} * {pivot_line_fraction[i]}) = {new_line_fraction[i]}')
+                operation.append(f'{row_fraction[i]} - ({round(pivot,3)} * {pivot_line_fraction[i]}) = {new_line_fraction[i]}')
             return operation
         except:
             raise Exception(f'Erro ao imprimir a operação. Vetores: {row} - {pivot_line} - {new_line}')
@@ -200,9 +200,9 @@ class Simplex:
     def get_results(self):
         """Retorna os resultados do problema"""
         results = {}
-        results['solucao'] = self.table[0][-1]
+        results['solucao'] = round(self.table[0][-1], 3)
         for i in range(1, len(self.table)):
-            results[self.basic_vars[i-1]] = round(self.table[i][-1],6)
+            results[self.basic_vars[i-1]] = round(self.table[i][-1],3)
         return results
         
     def register_iteration(self, pivot_column=None, pivot_line=None, operations=None):
@@ -244,7 +244,7 @@ class Simplex:
         self.iteration_history.append(self.register_iteration(None, None, None))
         response['iteracoes'] = self.iteration_history 
         response['variaveis_nao_basicas'] = {value:0 for key, value in enumerate(self.get_all_vars()) if value not in self.basic_vars}
-        response['solucao_inteira'] = all(round(value, 6).is_integer() for key, value in response['solucao'].items() if key in self.expression_util.get_variables(self.string_objective_function))
+        response['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in response['solucao'].items() if key in self.expression_util.get_variables(self.string_objective_function))
         print(f'Solução: {response["solucao_inteira"]}')
         return response
     
@@ -252,9 +252,10 @@ class Simplex:
         """verifica se o valor da função objetivo é otimo para o problema"""
         num_vars = len(self.expression_util.get_variables(self.string_objective_function))
         if self.objective == Objective.MAX.value:
-            return all(round(value, 2) >= 0 for value in self.table[0][:-1])
+            print(f'Valores: {self.table[0][:-1]}')
+            return all(round(value, 3) >= 0 for value in self.table[0][:-1])
         else:
-            return all(round(value, 2) <= 0 for value in self.table[0][:num_vars])
+            return all(round(value, 3) <= 0 for value in self.table[0][:num_vars])
     
     def insert_slack_var(self, row: list, default_format=True):
         """Insere variável de folga na restrição"""
@@ -449,7 +450,8 @@ if __name__ == "__main__":
     constraints = ["5x1 + 2x2 <= 16",
                    "2x1 - 1x2 <= 4",
                    "-1x1 + 2x2 <= 4",
-                   "x1 <= 2",
+                   "x2 >= 1",
+                   "x1>=3"
                    ]
 
     # objective = "5x1 + 6x2"

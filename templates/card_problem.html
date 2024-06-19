@@ -1,4 +1,4 @@
-<a href="#" class="block max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 {{ 'bg-green-100' if problema['integer_solution'] else '' }}">
+<a href="#" class="block max-w-sm p-6 border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 {{ 'bg-green-100 hover:bg-green-200' if problema['integer_solution'] else 'bg-orange-100 hover:bg-orange-50' }}">
 
     <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Z = {{ problema['simplex'].string_objective_function }}</h5>
     <p class="font-normal text-gray-700 dark:text-gray-400">Sujeito a:</p>

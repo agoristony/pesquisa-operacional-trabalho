@@ -31,6 +31,7 @@ async def read_item(request: Request):
 async def read_item(request: Request):
     form = await request.form()
     keys = form.keys()
+    tipo_problema = form['tipoProblema']
     num_vars = len([key for key in keys if key.startswith('a1')])
     num_constraints = len([key for key in keys if key.startswith('b')])
     constraint_types = [form[f'relacao{i}'] for i in range(1, num_constraints + 1)]
@@ -38,7 +39,7 @@ async def read_item(request: Request):
     A = [[float(form[f'a{i}{j}']) for j in range(1, num_vars + 1)] for i in range(1, len(b) + 1)]
     objective_function = [form[f'c{i}'] for i in range(1, num_vars + 1)]
     objective_function_string = '+'.join(objective_function[i-1] + f'x{i}' for i in range(1, num_vars + 1))
-    simplex = Simplex(objective_function_string, Objective.MIN.value)
+    simplex = Simplex(objective_function_string, Objective.MIN.value if tipo_problema == 'min' else Objective.MAX.value)
     for i, constraint in enumerate(A):
         constraint_string = '+'.join(str(constraint[j]) + f'x{j+1}' for j in range(len(constraint)))
         print(constraint_string + constraint_types[i] + str(b[i]))

@@ -1,9 +1,9 @@
 {% if solution %}
-<div id="solucao">
+<div id="solucao" class="bg-orange-100" >
     <div class="p-4">
         
         <h2 class="text-2xl p-2 font-bold">Solução</h2>
-        <p class="text-2xl p-2 text-green-500 font-light">Z = {{ solution['solucao']['solucao'] }}</p>
+        <p class="text-2xl p-2 text-green-500 font-bold">Z = {{ solution['solucao']['solucao'] }}</p>
         <p class="text-lg p-2 font-semibold">Solução Ótima {{'inteira' if solution['solucao_inteira'] else ''}}.
 
             {% if not solution['solucao_inteira'] %}
@@ -57,7 +57,7 @@
                         </thead>
                         <tbody>
                             {% for line in iteracao['table'] %}
-                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 {{ 'bg-green-100' if loop.index0 == iteracao['pivot_line_index'] else '' }}">
+                                <tr class="bg-orange-50 border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 {{ 'bg-green-100' if loop.index0 == iteracao['pivot_line_index'] else '' }}">
                                     <td class="p-2 border border-gray-300 text-sm rounded-md">{{ iteracao['basic_vars'][loop.index0-1] if loop.index0 != 0 else 'Z' }}</td>
                                     {% for value in line %}
                                         <td class="p-2 border border-gray-300 text-sm rounded-md {{ 'bg-green-100' if loop.index0 == iteracao['pivot_column_index'] else '' }}">
