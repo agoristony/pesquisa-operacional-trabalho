@@ -1,3 +1,5 @@
+from matplotlib import pyplot as plt
+from sympy import Symbol, solve
 from tabulate import tabulate
 from utils import Table, ExpressionUtil
 from fractions import Fraction
@@ -5,7 +7,6 @@ import numpy as np
 
 
 import enum
-
 class Objective(enum.Enum):
     MAX = 0
     MIN = 1
@@ -71,15 +72,20 @@ class Simplex:
     def is_simplex_standard(self, constraint: str) -> bool:
         """Verifica se a restrição está no padrão do simplex"""
         return "<=" in constraint and self.objective == Objective.MAX.value
-
-    def add_restriction(self, expression: str):
-        self.restriction_strings.append(expression)
+    
+    def get_constraint_from_string(self, expression: str) -> list:
+        """Retorna a restrição em formato de lista"""
         delimiter = "<=" if "<=" in expression else ">=" if ">=" in expression else "="
-        default_format = True
         splitted_expression = expression.split(delimiter)
         constraint = self.expression_util.get_numeric_values(
             splitted_expression[0], fo_variables=self.expression_util.get_variables(self.string_objective_function)
         )
+        return constraint, delimiter, splitted_expression
+
+    def add_restriction(self, expression: str):
+        self.restriction_strings.append(expression)
+        default_format = True
+        constraint, delimiter, splitted_expression = self.get_constraint_from_string(expression)
         if not default_format:
             self.objective_function += [0]
         if delimiter == "<=":
@@ -327,6 +333,29 @@ class Simplex:
         variables = self.expression_util.get_variables(self.string_objective_function)
         variables += [*self.slack_vars, *self.artificial_vars, *self.excess_vars]
         return sorted(variables)
+    
+    def dual(self):
+        """Converte o problema primal em dual"""
+        table = self.table
+        n_vars = len(self.expression_util.get_variables(self.string_objective_function))
+        new_objective = [restr[-1] for restr in table[1:]]
+        new_objective_string = f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_objective)])}"
+        dual_problem = Simplex(new_objective_string, Objective.MAX.value if self.objective == Objective.MIN.value else Objective.MIN.value)
+        new_restriction_strings = []
+        for i in range(n_vars):
+            new_restriction = [restr[i] for restr in table[1:]] + [table[0][i]]
+            if self.get_constraint_from_string(self.restriction_strings[i])[1] == ">=":
+                new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} <= {new_restriction[-1]}")
+            elif self.get_constraint_from_string(self.restriction_strings[i])[1] == "<=":
+                new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} >= {new_restriction[-1]}")
+            else:
+                new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} = {new_restriction[-1]}")
+        for restriction in new_restriction_strings:
+            dual_problem.add_restriction(restriction)
+        dual_problem.table = Table.normalize_table(dual_problem.objective_function, dual_problem.table, dual_problem.column_b)
+        return dual_problem.solve()
+    
+        
 
     def show_table(self):
         """Exibe a tabela simplex"""
@@ -337,6 +366,12 @@ class Simplex:
             table_copy[i] = basic_vars[i-1:i ] + table_copy[i]
         print(f'Iteração {self.iterations}')
         print(tabulate(table_copy, tablefmt="fancy_grid", headers=["Base"] + [*self.get_all_vars()] + ["b"]))
+    
+    def get_bounds(self, x1, x2, limit):
+        """Calcula os limites das restrições"""
+        x_1 = [limit/x1, 0.0] if x1 != 0 else [0.0, limit/x2]
+        x_2 = [0.0, limit/x2] if x2 != 0 else [limit/x1, 0.0]
+        return x_1, x_2
     
     def two_phase(self, verbose= True):
         """Resolve o problema de programação linear utilizando o método das duas fases"""
@@ -402,6 +437,90 @@ class Simplex:
         
         return solucao
     
+    
+def graphical_method(simplex):
+    """Resolve o problema de programação linear utilizando o método gráfico"""
+    if simplex.expression_util.get_variables(simplex.string_objective_function) != ['x1', 'x2']:
+        raise Exception("O método gráfico só pode ser utilizado para problemas com duas variáveis")
+    constraints = simplex.restriction_strings
+    x1 = Symbol("x1")
+    x2 = Symbol("x2")
+    constraints = [simplex.get_constraint_from_string(constraint) for constraint in constraints]
+    bounds_x = []
+    bounds_y = []
+    constraint_formulas = []
+    # calcula os limites das restrições
+    for constraint in constraints:
+        x, y = simplex.get_bounds(constraint[0][0], constraint[0][1], float(constraint[2][1]))
+        bounds_x.append(x)
+        bounds_y.append(y)
+        constraint_formulas.append(constraint[0][0] * x1 + constraint[0][1] * x2 - float(constraint[2][1]))
+        
+    optimal_solution = float('inf') if simplex.objective == Objective.MIN.value else float('-inf')
+    objective_formula = simplex.objective_function[0] * x1 + simplex.objective_function[1] * x2
+    for i in range(len(constraint_formulas)):
+        for j in range(i + 1, len(constraint_formulas)):
+            solution = solve((constraint_formulas[i], constraint_formulas[j]), (x1, x2), dict=True)
+            if simplex.objective == Objective.MAX.value:
+                if objective_formula.subs({x1: solution[0][x1], x2: solution[0][x2]}) > optimal_solution:
+                    optimal_solution = objective_formula.subs({x1: solution[0][x1], x2: solution[0][x2]})
+                    optimal_solution_values = solution[0]
+            else:
+                if objective_formula.subs({x1: solution[0][x1], x2: solution[0][x2]}) < optimal_solution:
+                    optimal_solution = objective_formula.subs({x1: solution[0][x1], x2: solution[0][x2]})
+                    optimal_solution_values = solution[0]
+    x_1, x_2 = optimal_solution_values[x1], optimal_solution_values[x2]
+    plt.plot(x_1, x_2, 'bo', label=f'Solução Ótima(x1: {round(x_1, 3)}, x2: {round(x_2, 3)})')
+    # plot constraint lines
+    for i in range(len(constraints)):
+        x, y = bounds_x[i], bounds_y[i]
+        plt.plot(x, y, label=f"{constraints[i][0][0]}x1 + {constraints[i][0][1]}x2 {constraints[i][1]} {constraints[i][2][1]}")
+        
+    # plot the feasible region
+    # find a set of points that satisfy all constraints
+    feasible_region_points = {f'{constraints[i][0][0]}x1 + {constraints[i][0][1]}x2 {constraints[i][1]} {constraints[i][2][1]}': [] for i in range(len(constraints))}
+    np_constraints = np.array([constraint[0] + [float(constraint[2][1])] for constraint in constraints])
+    x_array = np.linspace(0, 10, 100, dtype=float)
+
+    for x1 in x_array:
+        for x2 in x_array:
+            # if all(constraint[0][0] * float(x1) + constraint[0][1] * float(x2) <= float(constraint[2][1]) for constraint in constraints):
+            #     feasible_region_points.append([float(x1), float(x2)])
+            for index, constraint in enumerate(np_constraints):
+                if constraints[index][1] == "<=":
+                    if constraint[0] * x1 + constraint[1] * x2 <= constraint[2]:
+                        feasible_region_points[f'{constraints[index][0][0]}x1 + {constraints[index][0][1]}x2 {constraints[index][1]} {constraints[index][2][1]}'].append([x1, x2])
+                elif constraints[index][1] == ">=":
+                    if constraint[0] * x1 + constraint[1] * x2 >= constraint[2]:
+                        feasible_region_points[f'{constraints[index][0][0]}x1 + {constraints[index][0][1]}x2 {constraints[index][1]} {constraints[index][2][1]}'].append([x1, x2])
+                elif constraints[index][1] == "=":
+                    if constraint[0] * x1 + constraint[1] * x2 == constraint[2]:
+                        feasible_region_points[f'{constraints[index][0][0]}x1 + {constraints[index][0][1]}x2 {constraints[index][1]} {constraints[index][2][1]}'].append([x1, x2])
+
+    common_points = []
+    for key, value in feasible_region_points.items():
+        values_set = set([tuple(point) for point in value])
+        common_points = values_set if not common_points else common_points.intersection(values_set)
+    common_points = np.array(list(common_points))
+    plt.scatter(common_points[:, 0], common_points[:, 1], color='lightgreen', label='Região viável')
+    
+    # plot the objective function
+    x = np.linspace(0, 10, 100)
+    y = (optimal_solution - simplex.objective_function[0] * x) / simplex.objective_function[1]
+    plt.plot(x, y, label=f"{simplex.objective_function[0]}x1 + {simplex.objective_function[1]}x2 = {round(optimal_solution, 3)}", color='red', linestyle='--')
+    plt.xlabel('x1')
+    plt.ylabel('x2')
+    
+    plt.xlim(0, max(bounds_x[0]) + 1)
+    plt.ylim(0, max(bounds_y[0]) + 1)
+    plt.title(f'Solução Gráfica - {"Max" if simplex.objective == Objective.MAX.value else "Min"} Z = {simplex.string_objective_function}')
+    
+    
+    figname = f'static/plots/graphical_solution_{simplex.string_objective_function}.png'
+    plt.savefig(figname)
+    plt.show(block=False)
+    return figname
+    
 
 def branch_and_bound():
     """"
@@ -428,11 +547,11 @@ if __name__ == "__main__":
                    "x4 >= 20",
                    ]
     
-    # objective = "3x1 + 2x2"
-    # constraints = ["1x1 + 2x2 <= 10",
-    #                "3x1 + 1x2 >= 15",
-    #                "1x1 + 1x2 = 7",
-    #                ]
+    objective = "3x1 + 2x2"
+    constraints = ["1x1 + 2x2 <= 10",
+                   "3x1 + 1x2 >= 15",
+                   "1x1 + 1x2 = 7",
+                   ]
     
     
     # objective = "5x1 + 4x2"
@@ -440,33 +559,30 @@ if __name__ == "__main__":
     #                "2x1 + 3x2 >= 7",
     #                ]
     
-    objective = "0.4x1 + 0.5x2"
-    constraints = ["0.3x1 + 0.1x2 <= 2.7",
-                     "0.5x1 + 0.5x2 <= 6",
-                     "0.6x1 + 0.4x2 >= 6",
-                     ]
+    # objective = "0.4x1 + 0.5x2"
+    # constraints = ["0.3x1 + 0.1x2 <= 2.7",
+    #                  "0.5x1 + 0.5x2 <= 6",
+    #                  "0.6x1 + 0.4x2 >= 6",
+    #                  ]
 
-    objective = "220x1 + 80x2"
-    constraints = ["5x1 + 2x2 <= 16",
-                   "2x1 - 1x2 <= 4",
-                   "-1x1 + 2x2 <= 4",
-                   "x2 >= 1",
-                   "x1>=3"
-                   ]
+    # objective = "220x1 + 80x2"
+    # constraints = ["5x1 + 2x2 <= 16",
+    #                "2x1 - 1x2 <= 4",
+    #                "-1x1 + 2x2 <= 4",
+    #                "x2 >= 1",
+    #                "x1>=3"
+    #                ]
 
     # objective = "5x1 + 6x2"
     # constraints = ["x1 + x2 <= 5",
     #                "4x1 + 7x2 <= 28",
     #                ]
-    simplex = Simplex(objective, Objective.MAX.value)
+    simplex = Simplex(objective, Objective.MIN.value)
     for constraint in constraints:
         simplex.add_restriction(constraint)
     simplex.table = Table.normalize_table(simplex.objective_function, simplex.table, simplex.column_b)
     print(simplex.table)
     
-    # print(primal_to_dual(simplex))
     # graphical_solution(simplex)
-    print(simplex.solve())
+    # print(simplex.dual())
 
-    # simplex.two_phase()
-    # LinearProgrammingPlotter.plot_solution(objective, constraints)

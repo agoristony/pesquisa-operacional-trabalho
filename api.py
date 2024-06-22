@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from simplex import Simplex, Objective
+from simplex import Simplex, Objective, graphical_method
 from utils import Table
 from branch_and_bound import BranchAndBound
 
@@ -32,6 +32,7 @@ async def read_item(request: Request):
     form = await request.form()
     keys = form.keys()
     tipo_problema = form['tipoProblema']
+    tipo_simplex = form['tipoSimplex']
     num_vars = len([key for key in keys if key.startswith('a1')])
     num_constraints = len([key for key in keys if key.startswith('b')])
     constraint_types = [form[f'relacao{i}'] for i in range(1, num_constraints + 1)]
@@ -45,6 +46,11 @@ async def read_item(request: Request):
         print(constraint_string + constraint_types[i] + str(b[i]))
         simplex.add_restriction(constraint_string + constraint_types[i] + str(b[i]))
     simplex.table = Table.normalize_table(simplex.objective_function, simplex.table, simplex.column_b)
+    if tipo_simplex == 'grafico':
+        path = graphical_method(simplex)
+        return templates.TemplateResponse(
+            request=request, name="graphical_solver.html", context={"image": path}
+        )
     solution = simplex.solve(False)
     return templates.TemplateResponse(
         request=request, name="simplex_solver.html", context={"solution": solution}
@@ -95,4 +101,3 @@ async def read_item(request: Request):
     return templates.TemplateResponse(
         request=request, name="index.html"
     )
-   
