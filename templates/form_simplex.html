@@ -71,7 +71,7 @@
     <div class="inline-flex rounded-md justify-center">
         <input type="hidden" name="tipoSimplex" x-model="tipoSimplex">
         {% block resolver %}
-        <button type="button" class="p-2 bg-orange-200 border justify-center w-60 rounded-md" hx-post="/simplex_solver" hx-target="#solucao" hx-swap="outerHTML" hx-indicator="true">
+        <button type="button" class="p-2 bg-orange-200 border justify-center w-60 rounded-md" hx-post="/simplex_solver" hx-target="#solucao" hx-swap="outerHTML" hx-indicator="true" @click="tipoSimplex = 'simplex'">
             Resolver
         </button>
         {% if variaveis == '2' %}

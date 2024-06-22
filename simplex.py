@@ -48,10 +48,7 @@ class Simplex:
         self.restriction_strings = [] # restrições em string
         self.first_phase = False
         
-        if self.objective == Objective.MAX.value:
-            self.objective_function = self._build_objective_function(string_objective_function, True)
-        else:
-            self.objective_function = self._build_objective_function(string_objective_function, False)
+        self.objective_function = self._build_objective_function(string_objective_function)
     
     def __repr__(self):
         return f'Z = {self.string_objective_function} \nSujeito a: {self.restriction_strings}'
@@ -61,11 +58,9 @@ class Simplex:
             string_objective_function (str): Função objetivo em string.
         Retorna:
             list: Coeficientes da função objetivo."""
-    def _build_objective_function(self, string_objective_function: str, maximize: bool) -> list:
+    def _build_objective_function(self, string_objective_function: str) -> list:
         variables = self.expression_util.get_variables(string_objective_function)
         row = self.expression_util.get_numeric_values(string_objective_function, fo_variables=variables)
-        if maximize:
-            row = [coef * -1 for coef in row]
         print(f'Função objetivo: {row}')
         return row
     
@@ -83,6 +78,13 @@ class Simplex:
         return constraint, delimiter, splitted_expression
 
     def add_restriction(self, expression: str):
+        '''Adiciona uma restrição ao problema de programação linear
+        Args:
+            expression (str): Restrição em string.
+        Retorna:
+            list: Restrição em formato de lista.
+            
+        '''
         self.restriction_strings.append(expression)
         default_format = True
         constraint, delimiter, splitted_expression = self.get_constraint_from_string(expression)
@@ -91,9 +93,9 @@ class Simplex:
         if delimiter == "<=":
             constraint = self.insert_slack_var(constraint, default_format)
         elif delimiter == "=":
-            constraint = self.insert_artificial_var(constraint, default_format)
+            constraint = self.insert_artificial_var(constraint, default_format, delimiter)
         elif delimiter == ">=":
-            row = self.insert_artificial_var(constraint, default_format)
+            row = self.insert_artificial_var(constraint, default_format, delimiter)
             constraint = self.insert_excess_var(row, default_format)
         
         self.column_b.append(float(splitted_expression[1]))
@@ -103,9 +105,13 @@ class Simplex:
     
     def get_entry_column(self) -> list:
         """Define a coluna pivô"""
-        pivot_column = min(self.table[0][:-1]) if self.objective == Objective.MAX.value else max(self.table[0][:-1])
-        print(f'Coluna pivô: {pivot_column}, index: {self.table[0][:-1].index(pivot_column)}, {self.get_all_vars()}')
-        self.pivot_column_index = self.table[0][:-1].index(pivot_column)
+        pivot_column = min(self.table[0][:-1]) if self.objective == Objective.MIN.value else max(self.table[0][:-1])
+        pivot_index = None
+        for index, value in enumerate(self.table[0][:-1]):
+            if value == pivot_column:
+                pivot_index = index
+        print(f'Coluna pivô: {pivot_column}, index: {pivot_index}, {self.get_all_vars()}')
+        self.pivot_column_index = pivot_index
         return self.pivot_column_index
 
     def get_pivot_line(self, entry_column: list) -> list:
@@ -123,12 +129,11 @@ class Simplex:
         if not results:
             print(f'not results Linhas: {results}')
             raise Exception(f"Nenhum valor positivo encontrado para a coluna pivô {entry_column} - Problema ilimitado")
-
         results = {key: value for key, value in results.items() if value >= 0}
-        print(f'Linhas: {results}')
         return min(results, key=results.get)
     
     def print_line_operation(self, row: list, pivot_line: list, new_line: list, pivot: int = 0):
+        '''Imprime a operação realizada na linha do simplex'''
         row_fraction = [Fraction(value).limit_denominator(2) for value in row]
         pivot_line_fraction = [Fraction(value).limit_denominator(2) for value in pivot_line]
         new_line_fraction = [Fraction(value).limit_denominator(2) for value in new_line]
@@ -141,17 +146,25 @@ class Simplex:
             raise Exception(f'Erro ao imprimir a operação. Vetores: {row} - {pivot_line} - {new_line}')
 
     def calculate_new_line(self, row: list, pivot_line: list, verbose) -> list:
-        
+        '''Calcula a nova linha da tabela simplex a partir da linha pivô'''
         if len(row) != len(pivot_line):
             row = row[:-1]
         pivot = row[self.pivot_column_index] * -1 
         result_line = [pivot * value for value in pivot_line]
-        new_line = [round(new_value + old_value,6) for new_value, old_value in zip(result_line, row)]
+        new_line = [new_value + old_value for new_value, old_value in zip(result_line, row)]
         operation = self.print_line_operation(row, pivot_line, new_line, pivot)
         return new_line, operation
 
     def calculate(self, table: list, verbose, column=None, first_exit_line=None):
         """
+        Args:
+            table (list): Tabela simplex.
+            verbose (bool): Exibe a tabela simplex.
+            column (list): Coluna pivô.
+            first_exit_line (list): Linha que sai.
+        Retorna:
+            None
+            
             Calcula a próxima iteração do simplex
             - Identifica a coluna pivô
             - Identifica a linha que sai
@@ -159,8 +172,6 @@ class Simplex:
             - Substitui a linha que saiu pela nova linha pivô
             - Atualiza a lista de variáveis básicas
         """
-        
-
         if not column:
             column = self.get_entry_column()
         if not first_exit_line:
@@ -175,7 +186,6 @@ class Simplex:
         self.entering_vars.append(f"{self.get_all_vars()[self.pivot_column_index]}")
         self.leaving_vars.append(self.basic_vars[first_exit_line - 1])
         print(f'A variavel que sai da base é a {self.leaving_vars[self.iterations - 1]} e a que entra é {self.entering_vars[self.iterations - 1]}')
-
 
         # nova linha pivô
         pivot_line = list(map(lambda x: x / pivot, line))
@@ -206,12 +216,14 @@ class Simplex:
     def get_results(self):
         """Retorna os resultados do problema"""
         results = {}
-        results['solucao'] = round(self.table[0][-1], 3)
         for i in range(1, len(self.table)):
             results[self.basic_vars[i-1]] = round(self.table[i][-1],3)
+        results['solucao'] = round(self.table[0][-1] * -1, 3)
+        print(f'Solução: {results}')
         return results
         
     def register_iteration(self, pivot_column=None, pivot_line=None, operations=None):
+        '''Registra a iteração atual do simplex para históricp'''
         iteracao = {
             'iteracao': self.iterations,
             'table': self.table.copy(),
@@ -222,6 +234,13 @@ class Simplex:
             'operacoes': operations,
         }
         return iteracao
+    
+    def basic_vars_indexes(self):
+        """Retorna os índices das variáveis básicas"""
+        indexes = []
+        for var in self.basic_vars:
+            indexes.append(self.get_all_vars().index(var))
+        return indexes
     
     def solve(self, verbose=True):
         """Resolve o problema de programação linear"""    
@@ -235,7 +254,7 @@ class Simplex:
         }
         
         if self.artificial_vars != [] and not self.first_phase:
-            return self.two_phase(verbose) 
+            return self.two_phase(verbose)
         self.show_table()   
         
         while not self.is_optimal():
@@ -245,23 +264,21 @@ class Simplex:
             if self.iterations > 50:
                 print('Número máximo de iterações atingido')
                 break
-        variables = self.expression_util.get_variables(self.string_objective_function)
         response['solucao'] = self.get_results()
         self.iteration_history.append(self.register_iteration(None, None, None))
         response['iteracoes'] = self.iteration_history 
         response['variaveis_nao_basicas'] = {value:0 for key, value in enumerate(self.get_all_vars()) if value not in self.basic_vars}
         response['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in response['solucao'].items() if key in self.expression_util.get_variables(self.string_objective_function))
-        print(f'Solução: {response["solucao_inteira"]}')
         return response
     
     def is_optimal(self) -> bool:
         """verifica se o valor da função objetivo é otimo para o problema"""
-        num_vars = len(self.expression_util.get_variables(self.string_objective_function))
-        if self.objective == Objective.MAX.value:
-            print(f'Valores: {self.table[0][:-1]}')
-            return all(round(value, 3) >= 0 for value in self.table[0][:-1])
-        else:
-            return all(round(value, 3) <= 0 for value in self.table[0][:num_vars])
+        if self.first_phase:
+            basic_vars_indexes = self.basic_vars_indexes()
+            return all(round(value, 3) >= 0 for value in self.table[0][:-1]) and all(round(self.table[0][i], 3) == 0 for i in range(len(self.table[0])) if i in basic_vars_indexes)
+        elif self.objective == Objective.MAX.value:
+            return all(round(value, 3) <= 0 for value in self.table[0][:-1])
+        return all(round(value, 3) >= 0 for value in self.table[0][:-1])
     
     def insert_slack_var(self, row: list, default_format=True):
         """Insere variável de folga na restrição"""
@@ -290,7 +307,7 @@ class Simplex:
         self.slack_vars += [f"x{variables + self.inserted}"]
         return row
     
-    def insert_artificial_var(self, row: list, default_format=True):
+    def insert_artificial_var(self, row: list, default_format=True, delimiter=None):
         """Insere variável artificial na restrição"""
         self.objective_function.append(0)
 
@@ -305,7 +322,10 @@ class Simplex:
         limit = len(self.table[self.inserted - len(self.excess_vars) - 1]) - len(row)
         for _ in range(limit):
             row.append(0)
-        row.append(1)
+        if delimiter == ">=" or ((delimiter == "=") and self.objective == Objective.MIN.value):
+            row.append(1)
+        elif delimiter == "=":
+            row.append(0)
         self.inserted += 1
         self.basic_vars += [f"x{variables + self.inserted}"]
         self.artificial_vars += [f"x{variables + self.inserted}"]
@@ -335,25 +355,44 @@ class Simplex:
         return sorted(variables)
     
     def dual(self):
-        """Converte o problema primal em dual"""
+        """Converte o problema primal em dual
+        Se o problema primal é de maximização, o dual é de minimização e vice-versa
+        Retorna:
+            Simplex: Instância da classe Simplex com o problema dual.
+        """
         table = self.table
         n_vars = len(self.expression_util.get_variables(self.string_objective_function))
-        new_objective = [restr[-1] for restr in table[1:]]
-        new_objective_string = f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_objective)])}"
-        dual_problem = Simplex(new_objective_string, Objective.MAX.value if self.objective == Objective.MIN.value else Objective.MIN.value)
+        new_objective = []
         new_restriction_strings = []
         for i in range(n_vars):
             new_restriction = [restr[i] for restr in table[1:]] + [table[0][i]]
-            if self.get_constraint_from_string(self.restriction_strings[i])[1] == ">=":
-                new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} <= {new_restriction[-1]}")
-            elif self.get_constraint_from_string(self.restriction_strings[i])[1] == "<=":
-                new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} >= {new_restriction[-1]}")
+            _, delimiter, _ = self.get_constraint_from_string(self.restriction_strings[i])
+            new_objective.append(self.column_b[i+1])
+            if self.objective == Objective.MAX.value:
+                if delimiter == ">=":
+                    new_restriction = [-value for value in new_restriction]
+                    new_objective[-1] = -new_objective[-1]
+                    delimiter = "<="
+                    new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} <= {new_restriction[-1]}")
+                else:
+                    new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} >= {new_restriction[-1]}")
             else:
-                new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} = {new_restriction[-1]}")
+                if delimiter == "<=":
+                    new_restriction = [-value for value in new_restriction]
+                    new_objective[-1] = -new_objective[-1]
+                    delimiter = ">="
+                    new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} >= {new_restriction[-1]}")
+                else:
+                    new_restriction_strings.append(f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_restriction[:-1])])} <= {new_restriction[-1]}")
+        print(f'Objetivo: {new_objective}')
+        new_objective_string = f"{'+'.join([str(value) + f'x{i+1}' for i, value in enumerate(new_objective)])}"
+        dual_problem = Simplex(new_objective_string, Objective.MAX.value if self.objective == Objective.MIN.value else Objective.MIN.value)
+        
+        
         for restriction in new_restriction_strings:
             dual_problem.add_restriction(restriction)
         dual_problem.table = Table.normalize_table(dual_problem.objective_function, dual_problem.table, dual_problem.column_b)
-        return dual_problem.solve()
+        return dual_problem
     
         
 
@@ -363,12 +402,19 @@ class Simplex:
         basic_vars = self.basic_vars.copy()
         table_copy[0] = ["Z"] + table_copy[0]
         for i in range(1, len(table_copy)):
-            table_copy[i] = basic_vars[i-1:i ] + table_copy[i]
+            table_copy[i] = basic_vars[i-1:i ] + [round(value, 3) for value in table_copy[i]]
         print(f'Iteração {self.iterations}')
         print(tabulate(table_copy, tablefmt="fancy_grid", headers=["Base"] + [*self.get_all_vars()] + ["b"]))
     
     def get_bounds(self, x1, x2, limit):
-        """Calcula os limites das restrições"""
+        """Calcula os limites das restrições
+        Args:
+            x1 (int): Coeficiente da variável x1.
+            x2 (int): Coeficiente da variável x2.
+            limit (int): Limite da restrição.
+        Retorna:
+            tuple: Limites das restrições.
+        """
         x_1 = [limit/x1, 0.0] if x1 != 0 else [0.0, limit/x2]
         x_2 = [0.0, limit/x2] if x2 != 0 else [limit/x1, 0.0]
         return x_1, x_2
@@ -381,23 +427,35 @@ class Simplex:
         new_objective = [0] * num_variaveis
         for i in range(num_variaveis):
             if f'x{i+1}' in self.artificial_vars:
-                new_objective[i] = -1 if self.objective == Objective.MIN.value else 1
+                new_objective[i] = -1
             else:
                 new_objective[i] = 0
-        self.objective_function =  new_objective + [0]
+        self.objective_function = new_objective + [0]
         
+        self.show_table()
+        
+        # Monta a funcao artificial
         for var in self.artificial_vars:
             index = self.basic_vars.index(var)
             row = self.table[index+1]
+            if row[self.get_all_vars().index(var)] != 1:
+                continue
+            print(f'Variável artificial: {var} - {row}')
             for i in range(len(row)):
-                self.objective_function[i] += row[i]
-            
+                if f'x{i+1}' in self.artificial_vars:
+                    self.objective_function[i] = 0
+                else:
+                    self.objective_function[i] -= row[i]
+                    
         self.table[0] = self.objective_function
+        self.show_table()
         original_objective = self.objective
         self.objective = Objective.MIN.value
         self.first_phase = True
         solucao = self.solve()
         to_remove = []
+        
+        # Remove variáveis artificiais
         for i in range(len(row)):
             if f'x{i+1}' in self.artificial_vars:
                 to_remove.append(i)
@@ -407,11 +465,11 @@ class Simplex:
         self.artificial_vars = []
         
         # 2a fase
-        print('2a fase')
         self.first_phase = False
         print(f'Objetivo: {self.string_objective_function}')
-        self.objective_function = self._build_objective_function(self.string_objective_function, True)
+        self.objective_function = self._build_objective_function(self.string_objective_function)
         
+        # calcula a nova função objetivo
         for i in range(self.inserted):
             self.objective_function.append(0)
         cj = self.objective_function + [0]
@@ -424,22 +482,35 @@ class Simplex:
                 cb.append(0)
         A = self.table[1:]
         new_objective_function = np.transpose(cj) - np.dot(cb,A)
-        self.table[0] = [round(value, 6) for value in new_objective_function]
         self.objective = original_objective
+        self.table[0] = [value for value in new_objective_function]
+        
         operations = []
         operations.append([f'W = {self.objective_function}'] + [f'Z = {self.table[0]}'])
         try:
             solucao['iteracoes'].append(self.register_iteration(self.pivot_column_index, self.get_pivot_line(self.pivot_column_index), operations))
         except:
             pass
-        solucao_fase_2 = self.solve()
-        solucao['solucao'] = solucao_fase_2['solucao']
-        
+        self.solve()
+        solucao['solucao'] = self.get_results()
+        self.iteration_history.append(self.register_iteration(None, None, None))
+        solucao['iteracoes'] = self.iteration_history 
+        solucao['variaveis_nao_basicas'] = {value:0 for key, value in enumerate(self.get_all_vars()) if value not in self.basic_vars}
+        solucao['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in solucao['solucao'].items() if key in self.expression_util.get_variables(self.string_objective_function))
         return solucao
     
     
 def graphical_method(simplex):
-    """Resolve o problema de programação linear utilizando o método gráfico"""
+    """Resolve o problema de programação linear utilizando o método gráfico
+    Args:
+        simplex (Simplex): Instância da classe Simplex.
+    Retorna:
+        figname (str): Nome do arquivo da imagem gerada.
+    Raises:
+        Exception: Caso o problema não possua duas variáveis.
+    
+    Calcula os limites das restrições e plota o gráfico do problema.
+    """
     if simplex.expression_util.get_variables(simplex.string_objective_function) != ['x1', 'x2']:
         raise Exception("O método gráfico só pode ser utilizado para problemas com duas variáveis")
     constraints = simplex.restriction_strings
@@ -449,6 +520,7 @@ def graphical_method(simplex):
     bounds_x = []
     bounds_y = []
     constraint_formulas = []
+    
     # calcula os limites das restrições
     for constraint in constraints:
         x, y = simplex.get_bounds(constraint[0][0], constraint[0][1], float(constraint[2][1]))
@@ -456,11 +528,16 @@ def graphical_method(simplex):
         bounds_y.append(y)
         constraint_formulas.append(constraint[0][0] * x1 + constraint[0][1] * x2 - float(constraint[2][1]))
         
+    # calcula a solução ótima e plota o gráfico
     optimal_solution = float('inf') if simplex.objective == Objective.MIN.value else float('-inf')
     objective_formula = simplex.objective_function[0] * x1 + simplex.objective_function[1] * x2
     for i in range(len(constraint_formulas)):
         for j in range(i + 1, len(constraint_formulas)):
             solution = solve((constraint_formulas[i], constraint_formulas[j]), (x1, x2), dict=True)
+            
+            if not all(constraint_formula.subs({x1: solution[0][x1], x2: solution[0][x2]}) <= 0 for constraint_formula in constraint_formulas):
+                continue
+            
             if simplex.objective == Objective.MAX.value:
                 if objective_formula.subs({x1: solution[0][x1], x2: solution[0][x2]}) > optimal_solution:
                     optimal_solution = objective_formula.subs({x1: solution[0][x1], x2: solution[0][x2]})
@@ -469,23 +546,21 @@ def graphical_method(simplex):
                 if objective_formula.subs({x1: solution[0][x1], x2: solution[0][x2]}) < optimal_solution:
                     optimal_solution = objective_formula.subs({x1: solution[0][x1], x2: solution[0][x2]})
                     optimal_solution_values = solution[0]
+            
     x_1, x_2 = optimal_solution_values[x1], optimal_solution_values[x2]
-    plt.plot(x_1, x_2, 'bo', label=f'Solução Ótima(x1: {round(x_1, 3)}, x2: {round(x_2, 3)})')
-    # plot constraint lines
+    plt.plot(x_1, x_2, 'bo', label=f'Ponto Ótimo')
+    
+    # plota as restrições
     for i in range(len(constraints)):
         x, y = bounds_x[i], bounds_y[i]
         plt.plot(x, y, label=f"{constraints[i][0][0]}x1 + {constraints[i][0][1]}x2 {constraints[i][1]} {constraints[i][2][1]}")
         
-    # plot the feasible region
-    # find a set of points that satisfy all constraints
     feasible_region_points = {f'{constraints[i][0][0]}x1 + {constraints[i][0][1]}x2 {constraints[i][1]} {constraints[i][2][1]}': [] for i in range(len(constraints))}
     np_constraints = np.array([constraint[0] + [float(constraint[2][1])] for constraint in constraints])
     x_array = np.linspace(0, 10, 100, dtype=float)
 
     for x1 in x_array:
         for x2 in x_array:
-            # if all(constraint[0][0] * float(x1) + constraint[0][1] * float(x2) <= float(constraint[2][1]) for constraint in constraints):
-            #     feasible_region_points.append([float(x1), float(x2)])
             for index, constraint in enumerate(np_constraints):
                 if constraints[index][1] == "<=":
                     if constraint[0] * x1 + constraint[1] * x2 <= constraint[2]:
@@ -514,29 +589,14 @@ def graphical_method(simplex):
     plt.xlim(0, max(bounds_x[0]) + 1)
     plt.ylim(0, max(bounds_y[0]) + 1)
     plt.title(f'Solução Gráfica - {"Max" if simplex.objective == Objective.MAX.value else "Min"} Z = {simplex.string_objective_function}')
-    
+    plt.legend()
     
     figname = f'static/plots/graphical_solution_{simplex.string_objective_function}.png'
     plt.savefig(figname)
-    plt.show(block=False)
-    return figname
     
-
-def branch_and_bound():
-    """"
-    1o passo) Encontrar o ótimo para o problema relaxado.
-    2o passo) Avaliar: O problema é impossível? A solução é inteira?
-        Se sim pare, senão...
-    3o passo) Realizar partição na variável contínua xi
-        onde i=1 ou i=2. Quer dizer que novos problemas,
-        os descendentes, surgirão a partir da inclusão de
-        novas restrições ao modelo.
-    4o passo) Encontrar o ótimo para o problema relaxado e avaliar ...
-    5o passo) Particionar
-    6o passo) Encontrar o ótimo para o problema relaxado e avaliar
-    """
-
-
+    plt.show(block=False)
+    
+    return figname
     
 
 if __name__ == "__main__":
@@ -548,41 +608,28 @@ if __name__ == "__main__":
                    ]
     
     objective = "3x1 + 2x2"
-    constraints = ["1x1 + 2x2 <= 10",
-                   "3x1 + 1x2 >= 15",
-                   "1x1 + 1x2 = 7",
+    constraints = ["1x1 + 1x2 <= 4",
+                   "x1 <= 2",
+                   "1x2 <= 3",
                    ]
     
     
-    # objective = "5x1 + 4x2"
-    # constraints = ["3x1 + 2x2 >= 5",
-    #                "2x1 + 3x2 >= 7",
-    #                ]
+    objective = "5x1 + 4x2 + 3x3"
+    constraints = ["2x1 + 3x2 + x3 >= 10",
+                   "4x1 + x2 + 2x3 >= 8",
+                   "3x1 + 4x2 + 2x3 >= 12",
+                   ]
     
-    # objective = "0.4x1 + 0.5x2"
-    # constraints = ["0.3x1 + 0.1x2 <= 2.7",
-    #                  "0.5x1 + 0.5x2 <= 6",
-    #                  "0.6x1 + 0.4x2 >= 6",
-    #                  ]
+    objective = "0.4x1 + 0.5x2"
+    constraints = ["0.3x1 + 0.1x2 <= 2.7",
+                     "0.5x1 + 0.5x2 <= 6",
+                     "0.6x1 + 0.4x2 >= 6",
+                     ]
 
-    # objective = "220x1 + 80x2"
-    # constraints = ["5x1 + 2x2 <= 16",
-    #                "2x1 - 1x2 <= 4",
-    #                "-1x1 + 2x2 <= 4",
-    #                "x2 >= 1",
-    #                "x1>=3"
-    #                ]
-
-    # objective = "5x1 + 6x2"
-    # constraints = ["x1 + x2 <= 5",
-    #                "4x1 + 7x2 <= 28",
-    #                ]
     simplex = Simplex(objective, Objective.MIN.value)
     for constraint in constraints:
         simplex.add_restriction(constraint)
     simplex.table = Table.normalize_table(simplex.objective_function, simplex.table, simplex.column_b)
-    print(simplex.table)
-    
-    # graphical_solution(simplex)
-    # print(simplex.dual())
+    print(simplex.dual())
+    simplex.solve()
 
