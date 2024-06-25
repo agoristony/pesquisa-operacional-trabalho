@@ -3,3 +3,4 @@ fastapi
 latex
 natsort
 matplotlib
+sympy
