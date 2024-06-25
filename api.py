@@ -1,3 +1,4 @@
+import re
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -58,7 +59,12 @@ async def read_item(request: Request):
         )
     if tipo_simplex == 'dual':
         simplex = simplex.dual()
-    solution = simplex.solve(False)
+    try:
+        solution = simplex.solve(False)
+    except:
+        return templates.TemplateResponse(
+            request=request, name="infeasible_solution.html")
+        
     return templates.TemplateResponse(
         request=request, name="simplex_solver.html", context={"solution": solution, "problema": simplex}
     )
