@@ -12,7 +12,7 @@ Este projeto consiste em uma API para resolver problemas de Programação Linear
 
 1. Clone este repositório para o seu ambiente local:
     ```bash
-    git clone git@github.com:agoristony/pesquisa-operacional-trabalho.git
+    git clone https://github.com/agoristony/pesquisa-operacional-trabalho.git
     cd pesquisa-operacional-trabalho
     ```
 

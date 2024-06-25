@@ -2,3 +2,4 @@ tabulate
 fastapi
 latex
 natsort
+matplotlib
