@@ -1,5 +1,99 @@
-<div id="solucao" class="grid grid-flow-col overflow-y-hidden gap-4 p-4">
-{% for problema in solution %}
-    {% include 'card_problem.html' %}
-{% endfor %}
+
+
+<script>
+    function decodeHtml(html) {
+        const txt = document.createElement('textarea');
+        txt.innerHTML = html;
+        if (txt.value.startsWith("b'")) {
+            return txt.value.substring(2, txt.value.length - 1);
+        }
+        return txt.value;
+    }
+    
+    var nodes = new vis.DataSet([
+        {% for node in nodes %}
+            {id: {{ node.id }}, label: decodeHtml('{{ node.label }}'), title: '{{ node.title }}', color: '{{ node.color }}', group: '{{ node.group }}', level: {{ node.level }}, content: '{{ node.content }}'},
+        {% endfor %}
+    ]);
+    
+    var edges = new vis.DataSet([
+        {% for edge in edges %}
+            {from: {{ edge.from }}, to: {{ edge.to }}, title: '{{ edge.title }}'},
+        {% endfor %}
+    ]);
+
+    var container = document.getElementById('resultNetwork');
+    var data = {
+        nodes: nodes,
+        edges: edges
+    };
+    var options = {
+        height: '400px',
+        interaction: {
+            dragNodes: false,
+            dragView: false,
+            zoomView: false,
+            hover: true
+        },
+        nodes: {
+            shape: 'box',
+            margin: 10,
+            widthConstraint: {
+                maximum: 200
+            }
+        },
+        edges: {
+            smooth: true,
+            font: '12px arial #ff0000',
+            scaling:{
+                label: true,
+            },
+            arrows: 'from',
+        },
+        layout: {
+            improvedLayout:true,
+            hierarchical: {
+                enabled: true,
+                levelSeparation: 100,
+                nodeSpacing: 5,
+                direction: "UD",
+                sortMethod: "directed"
+            }
+        },
+        groups: {
+            best: {
+                color: '#C2FABC'
+            },
+            wrong: {
+                color: '#FB7E81'
+            },
+            normal: {
+                color: '#FBD38D'
+            },
+            integer: {
+                color: '#7E9EFB'
+            }
+        }
+    };
+    var network = new vis.Network(container, data, options);
+
+      this.network.on('selectNode', function(properties) {
+        try {
+            nodoSelecionado = properties.nodes;
+            let content = nodes.get(nodoSelecionado)[0]["content"]
+            document.getElementById("solucaosim").innerHTML = decodeHtml(content);
+            MathJax.typeset();
+        }
+        catch (err) {
+            //showAlert("danger", "Você clicou na aresta. Clique no nó!");
+        }
+    });
+    
+    this.network.on('deselectNode', function(properties) {
+        document.getElementById("solucaosim").innerHTML = "";
+    });
+</script>
+<div class="grid grid-cols-2 bg-orange-100 w-3/4 mx-auto gap-2" id="solucao">
+    <div id = "resultNetwork" class="my-auto"></div>
+    <div id="solucaosim" class="p-4"></div>
 </div>

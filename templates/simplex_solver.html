@@ -1,34 +1,94 @@
 {% if solution %}
-<div id="solucao" class="bg-orange-100" >
+<div id="solucao" class="grid bg-orange-100 w-3/4 mx-auto gap-2" >
     <div class="p-4">
-        
-        <h2 class="text-2xl p-2 font-bold">Solução</h2>
-        <p class="text-2xl p-2 text-green-500 font-bold">Z = {{ solution['solucao']['solucao'] }}</p>
-        <p class="text-lg p-2 font-semibold">Solução Ótima {{'inteira' if solution['solucao_inteira'] else ''}}.
-
-            {% if not solution['solucao_inteira'] %}
-                <br>
-                <button class="p-2 text-xs border rounded-xl" hx-swap="outerHTML" hx-indicator="true">Branch-and-bound ></button>
-            {% endif %}
-        </p>
-        
-        <div class="inline-flex">
-            <div>
-            <p class="text-lg p-2 font-semibold">Variaveis básicas:</p>
-            <ul class="p-4">
-                {% for key, value in solution['solucao'].items() %}
-                    {% if key != 'solucao' %}
-                        <li class="text-xs">{{ key }} = {{ value }}</li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
+        <div class="grid grid-cols-2 gap-4 divide-x-2 divide-orange-200 justify-center">
+            <div class="flex flex-col justify-center place-items-center">
+                <h5 class="mb-2 text-2xl font-bold tracking-tight text-orange-900">
+                    \({{'Min.' if problema.objective == 1 else 'Max.'}}\ Z = {{ problema.string_objective_function }}\)</h5>
+                <i class="font-normal text-orange-700">\(Sujeito\ a:\)</i>
+                <ul class="list-inside p-2">
+                    {% for restricao in problema.restriction_strings %}
+                    <li class="font-normal px-2 text-orange-700">\({{ restricao }}\)</li>
+                    {% endfor %}
+                </ul>
+                <div class="inline-flex p-2">
+                    <ul class="px-2 flex gap-2">
+                        {% for key, value in solution['solucao'].items() %}
+                            {% if key != 'solucao' %}
+                                <li class="text-xs">\({{ key }} >= 0{{ ',' if not loop.index0 == solution['solucao']|length-2 else '' }}\)</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+            </div>
+            </div>
+            <div class="flex flex-col justify-center place-items-center">
+                <p class="text-lg p-2 font-bold">\(Solução\ Ótima\ {{'inteira' if solution['solucao_inteira'] else ''}}\).
+                </p>
+                <p class="text-2xl p-2 text-green-500 font-bold">\(Z = {{ solution['solucao']['solucao'] }}\)</p>
+                
+                
+                <div class="inline-flex">
+                    <div>
+                    <p class="text-lg font-semibold">\(Variaveis\ básicas:\)</p>
+                    <ul class="p-2 flex gap-4">
+                        {% for key, value in solution['solucao'].items() %}
+                            {% if key != 'solucao' %}
+                                <li class="text-xs">\({{ key }} = {{ value }}\)</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                    </div>
+                </div>
             </div>
         </div>
-        <p class="text-lg font-semibold">Iteracoes:</p>
+        <div class="w-full h-0.5 bg-orange-200 my-4"></div>
+        
+        <p class="text-lg font-bold">\(Iteracoes:\)</p>
         <ul>
             {% for iteracao in solution['iteracoes'] %}
                 <li>
-                    <p class="font-bold p-4">Iteracao {{ iteracao['iteracao'] }}</p>
+                    <p class="font-bold p-4">\({{ 'Iteracao' if iteracao['iteracao'] != 'final' and iteracao['iteracao'] != 'inicial' else 'Tabela'}}\ {{ iteracao['iteracao'] }}\)</p>
+                    
+                    <table class="table-auto w-full mx-auto justify-center">
+                        <thead class="text-xs text-gray-700 bg-gray-50">
+                            <tr>
+                                <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md">\(Base\)</th>
+                                {% for j in iteracao['header_vars'] %}
+                                    <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md ">
+                                        \({{ j }}\)
+                                    </th>
+                                {% endfor %}
+                                <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md">\(b\)</th>
+                                {% if iteracao['iteracao'] != 'final' and iteracao['iteracao'] != 'inicial' %}
+                                <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md">\(Razão\)</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in iteracao['table'] %}
+
+                                <tr class="bg-orange-50 border-b hover:bg-gray-50 {{ 'bg-red-100' if loop.index0 == iteracao['pivot_line_index'] else '' }}">
+                                    <td class="p-2 border border-gray-300 text-sm rounded-md">\({{ iteracao['basic_vars'][loop.index0-1] if loop.index0 != 0 else 'Z' }}\)</td>
+                                    {% for value in line %}
+
+                                        <td class="p-2 border border-gray-300 text-sm rounded-md {{ 'bg-green-100' if loop.index0 == iteracao['pivot_column_index'] else '' }}">
+                                            <span class="text-xs">\({{ value | round(2) }}\)</span>
+                                        </td>
+                                    {% endfor %}
+                                    {% if iteracao['iteracao'] != 'final' and iteracao['iteracao'] != 'inicial' %}
+                                    {% if iteracao['results_pivot_line'][loop.index0] is defined %}
+                                    <td class="p-2 border border-gray-300 text-sm rounded-md">\({{ iteracao['results_pivot_line'][loop.index0]|round(2)}}\)</td>
+                                    {% elif loop.index0 == 0 %}
+                                    <td class="p-2 border border-gray-300 text-sm rounded-md"></td>
+                                    {% else %}
+                                    <td class="p-2 border border-gray-300 text-sm rounded-md">\(inf\)</td>
+                                    {% endif %}
+                                    {% endif %}
+
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                     {% if iteracao['operacoes'] %}
                     <div class="inline-flex">
                     {% for linha in iteracao['operacoes'] %}
@@ -37,42 +97,26 @@
                             {% if op[0] == 'W'%}
                                 <p class="p-2 font-semibold text-sm">2a Fase</p>
                             {% endif %}
-                            <p class="p-2 text-xs {{ 'font-semibold' if loop.index0 == 0 or op[0] == 'Z' else '' }}">{{ op }}</p>
+                            <p class="p-2 text-xs {{ 'font-semibold' if loop.index0 == 0 or op[0] == 'Z' else '' }}">\({{ op }}\)</p>
                         {% endfor %}
                         </div>
                     {% endfor %}
                     </div>
                     {% endif %}
-                    <table class="table-auto w-full mx-auto justify-center">
-                        <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                            <tr>
-                                <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md">Base</th>
-                                {% for j in iteracao['header_vars'] %}
-                                    <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md ">
-                                        {{ j }}
-                                    </th>
-                                {% endfor %}
-                                <th class=" w-32 p-2 border border-gray-300 text-sm rounded-md">b</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for line in iteracao['table'] %}
-                                <tr class="bg-orange-50 border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 {{ 'bg-green-100' if loop.index0 == iteracao['pivot_line_index'] else '' }}">
-                                    <td class="p-2 border border-gray-300 text-sm rounded-md">{{ iteracao['basic_vars'][loop.index0-1] if loop.index0 != 0 else 'Z' }}</td>
-                                    {% for value in line %}
-                                        <td class="p-2 border border-gray-300 text-sm rounded-md {{ 'bg-green-100' if loop.index0 == iteracao['pivot_column_index'] else '' }}">
-                                           <span class="text-xs"
-                                           >{{ value | round(2) }}</span>
-                                            
-                                        </td>
-                                    {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
                 </li>
             {% endfor %}
         </ul>
     </div>
 </div>
+<script>
+    MathJax.typeset();
+    document.querySelectorAll('td').forEach(td => {
+        // check if the td has a class bg-green-100 and the parent tr has a class bg-red-100 and change the color of the td to purple
+        if (td.classList.contains('bg-green-100') && td.parentElement.classList.contains('bg-red-100')) {
+            td.classList.remove('bg-green-100');
+            let classes_to_add = ['bg-purple-100', 'text-purple-700', 'font-bold', 'border-purple-300', 'italic']
+            td.classList.add(...classes_to_add);
+        }
+    });
+</script>
 {% endif %}

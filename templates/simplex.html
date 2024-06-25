@@ -3,11 +3,11 @@
 <div class="container mx-auto bg-brown-500 " x-data="{ variaveis: 0, tipoSimplex: 'generalizado', tipoProblema: 'max', tabela: [] }">
     
     <div class="p-4">
-    <form class="flex flex-col mx-auto space-y-4 w-3/4">
-        <h1 class="text-3xl text-orange-900 font-bold p-4">Simplex</h1>
+    <form class="flex p-4 flex-col mx-auto space-y-4 w-3/4" hx-post="/simplex_form" hx-target="#tabela" hx-swap="outerHTML" hx-indicator="true">
+        <h1 class="text-3xl text-orange-900 font-bold">Simplex</h1>
         <label for="variaveis" class="text-xs font-bold">Numero de variaveis</label>
-        <input type="number" class="p-2 border border-gray-300 text-sm rounded-md" placeholder="Numero de variaveis" name="variaveis" id="variaveis" x-model="variaveis">
-        <button class="p-2 w-60 border bg-orange-100 text-orange-900 rounded-md" hx-post="/simplex_form" hx-trigger="click" hx-target="#tabela" hx-swap="outerHTML" hx-indicator="true">Novo Problema</button>
+        <input type="number" class="p-2 w-60 border border-gray-300 text-sm rounded-md" placeholder="Numero de variaveis" name="variaveis" id="variaveis" required min="1">
+        <button class="p-2 w-60 border bg-orange-100 text-orange-900 rounded-md">Novo Problema</button>
     </form>
     <div id="tabela" class="p-4">
     </div>

@@ -1,18 +1,29 @@
-<a href="#" class="block max-w-sm p-6 border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 {{ 'bg-green-100 hover:bg-green-200' if problema['integer_solution'] else 'bg-orange-100 hover:bg-orange-50' }}">
-
-    <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Z = {{ problema['simplex'].string_objective_function }}</h5>
-    <p class="font-normal text-gray-700 dark:text-gray-400">Sujeito a:</p>
+<div class="flex flex-col justify-center h-full w-full p-6 border-2 rounded-sm bg-{{ class }}-50 border-{{class}}-200" id="card{{ problema['id'] }}">
+    <h5 class="mb-2 text-2xl font-bold tracking-tight text-{{class}}-900">\(Z = {{ problema['simplex'].string_objective_function }}\)</h5>
+    <i class="font-normal text-{{class}}-700">Sujeito a:</i>
     <ul class="list-inside p-2">
         {% for restricao in problema['simplex'].restriction_strings %}
-        <li class="font-normal px-2 text-gray-700 dark:text-gray-400">{{ restricao }}</li>
+        <li class="font-normal px-2 text-{{class}}-700">\({{ restricao }}\)</li>
         {% endfor %}
     </ul>
-    {% for key, value in problema['solution']['solucao'].items() %}
-    <p class="font-normal text-gray-700 dark:text-gray-400"><span class="font-bold">{{ key }}</span> = {{ value }}</p>
-    {% endfor %}
-    <div class="w-full h-0.5 bg-gray-200 my-4"></div>
-    <div class="grid text-center grid-cols-2 gap-4">
-        <p class="font-normal text-red-700 dark:text-gray-400">{{ problema['lower_bound_simplex'] }}</p>
-        <p class="font-normal text-green-700 dark:text-gray-400">{{ problema['upper_bound_simplex'] }}</p>
+    <div class="inline-flex p-2">
+            <ul class="px-2 flex gap-2">
+                {% for key, value in problema['solution']['solucao'].items() %}
+                    {% if key != 'solucao' %}
+                        <li class="text-xs">\({{ key }} >= 0{{ ',' if not loop.index0 == problema['solution']['solucao']|length-2 else '' }}\)</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
     </div>
-</a>
+    <div class="w-full h-0.5 bg-{{class}}-100 my-4"></div>
+    {% for key, value in problema['solution']['solucao'].items() %}
+    <p class="{{'font-normal' if key != 'solucao' else 'font-bold'}} text-{{class}}-700"><span class="">\({{ key if key != 'solucao' else 'Z' }}\)
+
+    </span>\( = {{ value }}\)</p>
+    {% endfor %}
+    <div class="w-full h-0.5 bg-{{class}}-100 my-4"></div>
+    <div class="grid font-bold text-center grid-cols-2 gap-4 divide-x divide-{{class}}-200">
+        <p class="text-red-700">\({{ problema['lower_bound_simplex'] }}\)</p>
+        <p class="text-green-700">\({{ problema['upper_bound_simplex'] }}\)</p>
+    </div>
+</div>

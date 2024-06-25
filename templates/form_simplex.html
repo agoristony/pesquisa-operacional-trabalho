@@ -2,7 +2,7 @@
 
 <div id="tabela" class="p-4">
 
-<form class="flex flex-col space-y-4 w-90" x-data="{
+<form class="flex flex-col space-y-4 w-90" hx-post="/simplex_solver" hx-target="#solucao" hx-swap="outerHTML" hx-indicator="true"  x-data="{
     variaveis : {{ variaveis }},
     table : [],
     restricoes : 1,
@@ -14,10 +14,10 @@
             <tr class="p-2">
                 <th class="p-2"></th>
                 <template x-for="i in variaveis" :key="i">
-                    <th class="p-2 border-gray-300 text-sm " x-text="'X' + i"></th>
+                    <th class="p-2 border-orange-300 text-sm " x-text="'X' + i"></th>
                 </template>
-                <th class="p-2 border-gray-300 w-8 text-sm ">Relação</th>
-                <th class="p-2 border-gray-300 text-sm ">b</th>
+                <th class="p-2 border-orange-300 w-12 text-sm ">Relação</th>
+                <th class="p-2 border-orange-300 text-sm ">b</th>
             </tr>
 
         </thead>
@@ -25,12 +25,12 @@
             <tr class="bg-orange-100">
                 <td class="font-bold p-2 text-center text-xs" x-text="'Objetivo'"></td>
                 <template x-for="j in variaveis" :key="j">
-                    <td class="p-2 border-gray-300 text-sm ">
-                        <input type="number" class="block w-full px-4 py-3 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'c' + j" :id="'c' + j">
+                    <td class="p-2 border-orange-300 text-sm ">
+                        <input required class="block w-full px-4 py-3 border border-2 border-orange-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" :name="'c' + j" :id="'c' + j">
                     </td>
                 </template>
-                <td class="p-2 text-sm ">
-                    <select name="tipoProblema" id="tipoProblema" class="w-full p-2 overflow-auto text-sm bg-orange-100  shadow-md max-h-56 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <td class="p-2 text-sm">
+                    <select name="tipoProblema" id="tipoProblema" class="w-16 p-2 overflow-auto text-sm bg-orange-100  shadow-md max-h-56 ring-1 ring-black ring-opacity-5 focus:outline-none">
                         <option value="max">Max</option>
                         <option value="min">Min</option>
                     </select>
@@ -38,22 +38,22 @@
                 <td class="bg-orange-100"></td>
             </tr>
             <template x-for="i in restricoes" :key="i">
-                <tr class="bg-orange-100 border-b hover:bg-orange-200">
+                <tr class="bg-orange-100 border-b hover:bg-orange-300">
                     <td class="font-bold p-2 text-xs text-center" x-text="'Restricao ' + i"></td>
                     <template x-for="j in variaveis" :key="j">
-                        <td class="p-2 border-gray-300 text-sm ">
-                            <input type="number" class="block w-full px-4 py-3 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'a' + i + j" :id="'a' + i + j">
+                        <td class="p-2 border-orange-300 text-sm ">
+                            <input required class="block w-full px-4 py-3 border border-2 border-orange-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" :name="'a' + i + j" :id="'a' + i + j">
                         </td>
                     </template>
-                    <td class="p-2 border-gray-300 flex text-sm ">
+                    <td class="p-2 border-orange-300 flex text-sm ">
                         <select class="w-full p-2 overflow-auto text-sm bg-orange-100  shadow-md max-h-56 ring-1 ring-black ring-opacity-5 focus:outline-none" :id="'relacao' + i" :name="'relacao' + i">
                             <option value="<="><=</option>
                             <option value="=">=</option>
                             <option value=">=">>=</option>
                         </select>
                     </td>
-                    <td class="p-2 border-gray-300 text-sm ">
-                        <input type="number" class="block w-full px-4 py-3 border border-2 border-gray-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" value="0" :name="'b' + i" :id="'b' + i">
+                    <td class="p-2 border-orange-300 text-sm ">
+                        <input required class="block w-full px-4 py-3 border border-2 border-orange-200 rounded-lg focus:ring focus:ring-blue-500 focus:outline-none" :name="'b' + i" :id="'b' + i">
                     </td>
                 </tr>
             </template>
@@ -61,29 +61,34 @@
     </table>
 
     <div class="inline-flex rounded-md justify-center" role="group">
-    <button type="button" @click.prevent="restricoes++"  class="px-4 py-2 text-sm font-medium text-gray-900 bg-orange-100 border border-gray-200 rounded-s-lg hover:bg-green-100 hover:text-green-700 focus:z-10 focus:ring-2 focus:ring-green-700 focus:text-green-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-green-500 dark:focus:text-white">
+    <button type="button" @click.prevent="restricoes++"  class="px-4 py-2 text-sm font-medium text-gray-900 bg-orange-100 border border-orange-200 rounded-s-lg hover:bg-green-100 hover:text-green-700 focus:z-10 focus:ring-2 focus:ring-green-700 focus:text-green-700 ">
         + Nova Restricao
     </button>
-    <button type="button" @click.prevent="restricoes--" class="px-4 py-2 text-sm font-medium text-gray-900 bg-orange-100 border border-gray-200 rounded-e-lg hover:bg-red-100 hover:text-red-700 focus:z-10 focus:ring-2 focus:ring-red-700 focus:text-red-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-red-500 dark:focus:text-white">
+    <button type="button" @click.prevent="restricoes--" class="px-4 py-2 text-sm font-medium text-gray-900 bg-orange-100 border border-orange-200 rounded-e-lg hover:bg-red-100 hover:text-red-700 focus:z-10 focus:ring-2 focus:ring-red-700 focus:text-red-700 ">
         - Remover Restricao
     </button>
     </div>
-    <div class="inline-flex rounded-md justify-center">
+    <div class="inline-flex rounded-md justify-center gap-4">
         <input type="hidden" name="tipoSimplex" x-model="tipoSimplex">
         {% block resolver %}
-        <button type="button" class="p-2 bg-orange-200 border justify-center w-60 rounded-md" hx-post="/simplex_solver" hx-target="#solucao" hx-swap="outerHTML" hx-indicator="true" @click="tipoSimplex = 'simplex'">
+        <button type="submit" class="p-2 bg-orange-100 border justify-center w-60 rounded-md" @click="tipoSimplex = 'simplex'">
             Resolver
         </button>
+        <button type="submit" class="p-2 bg-orange-100 border justify-center w-60 rounded-md" @click="tipoSimplex = 'dual'">
+            Resolver Dual
+        </button>
         {% if variaveis == '2' %}
-        <button type="button" class="p-2 bg-orange-200 border justify-center w-60 rounded-md" hx-post="/simplex_solver" hx-target="#solucao" hx-swap="outerHTML" hx-indicator="true" @click="tipoSimplex = 'grafico'">
+        <button type="submit"  class="p-2 bg-orange-100 border justify-center w-60 rounded-md" @click="tipoSimplex = 'grafico'">
             Resolver Graficamente
         </button>
         {% endif %}
+
         {% endblock %}
     </div>
   
     
-</form>
+
 
 <div id="solucao" class="p-4"></div>
 </div>
+</form>

@@ -1,2 +1,4 @@
 tabulate
 fastapi
+latex
+natsort
