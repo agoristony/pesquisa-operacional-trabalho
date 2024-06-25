@@ -56,6 +56,7 @@ class Simplex:
         self.first_phase = False
         
         self.objective_function = self._build_objective_function(string_objective_function)
+        self.variables = self.expression_util.get_variables(string_objective_function)
     
     def __repr__(self):
         return f'Z = {self.string_objective_function} \nSujeito a: {self.restriction_strings}'
@@ -80,7 +81,7 @@ class Simplex:
         delimiter = "<=" if "<=" in expression else ">=" if ">=" in expression else "="
         splitted_expression = expression.split(delimiter)
         constraint = self.expression_util.get_numeric_values(
-            splitted_expression[0], fo_variables=self.expression_util.get_variables(self.string_objective_function)
+            splitted_expression[0], fo_variables=self.variables
         )
         return constraint, delimiter, splitted_expression
 
@@ -297,7 +298,7 @@ class Simplex:
             self.iteration_history.append(self.register_iteration(None, None, None, None, 'final'))
         response['iteracoes'] = self.iteration_history 
         response['variaveis_nao_basicas'] = {value:0 for key, value in enumerate(self.get_all_vars()) if value not in self.basic_vars}
-        response['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in response['solucao'].items() if key in self.expression_util.get_variables(self.string_objective_function))
+        response['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in response['solucao'].items() if key in self.variables)
         # checa se o problema tem multiplas solucoes otimas conferindo se alguma variavel nao basica tem valor 0 
         nb_vars = set(self.get_all_vars()) - set(self.basic_vars)
         for var in nb_vars:
@@ -319,7 +320,7 @@ class Simplex:
     def insert_slack_var(self, row: list, default_format=True):
         """Insere variável de folga na restrição"""
         self.objective_function.append(0)
-        variables = len(self.expression_util.get_variables(self.string_objective_function))
+        variables = len(self.variables)
         if not self.table:
             row.append(1)
             self.inserted += 1
@@ -346,7 +347,7 @@ class Simplex:
         """Insere variável artificial na restrição"""
         self.objective_function.append(0)
 
-        variables = len(self.expression_util.get_variables(self.string_objective_function))
+        variables = len(self.variables)
         if not self.table:
             row.append(1)
             self.inserted += 1
@@ -369,7 +370,7 @@ class Simplex:
     def insert_excess_var(self, row: list, default_format=True):
         """Insere variável de excesso na restrição"""
         self.objective_function.append(0)
-        variables = len(self.expression_util.get_variables(self.string_objective_function))
+        variables = len(self.variables)
         if not self.table:
             row.append(-1)
             self.inserted += 1
@@ -385,7 +386,7 @@ class Simplex:
 
     def get_all_vars(self):
         """Retorna todas as variáveis do problema, incluindo as de folga, excesso e artificiais"""
-        variables = self.expression_util.get_variables(self.string_objective_function)
+        variables = self.variables.copy()
         variables += [*self.slack_vars, *self.artificial_vars, *self.excess_vars]
         return natsorted(variables, alg=ns.IGNORECASE)
     
@@ -396,7 +397,7 @@ class Simplex:
             Simplex: Instância da classe Simplex com o problema dual.
         """
         table = self.table
-        n_vars = len(self.expression_util.get_variables(self.string_objective_function))
+        n_vars = len(self.variables)
         table = self.table.copy()
         n_constraints = len(table[1:])
         
@@ -458,7 +459,7 @@ class Simplex:
     
     def two_phase(self, verbose= True):
         """Resolve o problema de programação linear utilizando o método das duas fases"""
-        num_variaveis =  len(self.expression_util.get_variables(self.string_objective_function)) + self.inserted
+        num_variaveis =  len(self.variables) + self.inserted
         # 1a fase
         
         new_objective = [0] * num_variaveis
@@ -533,7 +534,7 @@ class Simplex:
         solucao['solucao'] = self.get_results()
         solucao['iteracoes'] = self.iteration_history 
         solucao['variaveis_nao_basicas'] = {value:0 for key, value in enumerate(self.get_all_vars()) if value not in self.basic_vars}
-        solucao['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in solucao['solucao'].items() if key in self.expression_util.get_variables(self.string_objective_function))
+        solucao['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in solucao['solucao'].items() if key in self.variables)
         return solucao
     
 def _check_integer_solution(variable_values):          
@@ -751,12 +752,12 @@ if __name__ == "__main__":
     # constraints = ["1x1 + 1x2 <= 5",
     #                "4x1 + 7x2 <= 28",
     #                ]
-    objective = "2x1 + 4x2"
-    constraints = ["1x1 + 2x2 <= 5",
-                   "1x1 + 1x2 <= 4",
-                   ]
+    # objective = "2x1 + 4x2"
+    # constraints = ["1x1 + 2x2 <= 5",
+    #                "1x1 + 1x2 <= 4",
+    #                ]
 
-    simplex = Simplex(objective, Objective.MAX.value)
+    simplex = Simplex(objective, Objective.MIN.value)
     for constraint in constraints:
         simplex.add_restriction(constraint)
     simplex.table = Table.normalize_table(simplex.objective_function, simplex.table, simplex.column_b)

@@ -13,10 +13,8 @@
                 </ul>
                 <div class="inline-flex p-2">
                     <ul class="px-2 flex gap-2">
-                        {% for key, value in solution['solucao'].items() %}
-                            {% if key != 'solucao' %}
-                                <li class="text-xs">\({{ key }} >= 0{{ ',' if not loop.index0 == solution['solucao']|length-2 else '' }}\)</li>
-                            {% endif %}
+                        {% for key in problema['variables'] %}
+                                <li class="text-xs">\({{ key }} >= 0{{ ',' if not loop.index0 == problema['variables']|length-1 else '' }}\)</li>
                         {% endfor %}
                     </ul>
             </div>
@@ -36,7 +34,7 @@
                     <ul class="p-2 flex gap-4">
                         {% for key, value in solution['solucao'].items() %}
                             {% if key != 'solucao' %}
-                                <li class="text-xs">\({{ key }} = {{ value }}\)</li>
+                                <li class="text-xs">\({{ key }} = {{ value }}{{ ',' if not loop.index0 == solution['solucao']|length-2 else '' }}\)</li>
                             {% endif %}
                         {% endfor %}
                     </ul>
