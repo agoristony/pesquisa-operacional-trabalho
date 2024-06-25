@@ -298,6 +298,12 @@ class Simplex:
         response['iteracoes'] = self.iteration_history 
         response['variaveis_nao_basicas'] = {value:0 for key, value in enumerate(self.get_all_vars()) if value not in self.basic_vars}
         response['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in response['solucao'].items() if key in self.expression_util.get_variables(self.string_objective_function))
+        # checa se o problema tem multiplas solucoes otimas conferindo se alguma variavel nao basica tem valor 0 
+        nb_vars = set(self.get_all_vars()) - set(self.basic_vars)
+        for var in nb_vars:
+            if self.table[0][self.get_all_vars().index(var)] == 0:
+                response['solucao_multipla'] = True
+                break
         return response
     
     def is_optimal(self) -> bool:
@@ -745,13 +751,17 @@ if __name__ == "__main__":
     # constraints = ["1x1 + 1x2 <= 5",
     #                "4x1 + 7x2 <= 28",
     #                ]
+    objective = "2x1 + 4x2"
+    constraints = ["1x1 + 2x2 <= 5",
+                   "1x1 + 1x2 <= 4",
+                   ]
 
-    simplex = Simplex(objective, Objective.MIN.value)
+    simplex = Simplex(objective, Objective.MAX.value)
     for constraint in constraints:
         simplex.add_restriction(constraint)
     simplex.table = Table.normalize_table(simplex.objective_function, simplex.table, simplex.column_b)
     # graphical_branch_and_bound(simplex)
     # graphical_method(simplex, integer_constraint=False)
     simplex.dual()
-    simplex.dual().solve()
+    simplex.solve()
 

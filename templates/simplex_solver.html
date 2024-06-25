@@ -24,6 +24,9 @@
             <div class="flex flex-col justify-center place-items-center">
                 <p class="text-lg p-2 font-bold">\(Solução\ Ótima\ {{'inteira' if solution['solucao_inteira'] else ''}}\).
                 </p>
+                {% if solution['solucao_multipla'] %}
+                <p class="text-sm p-2 font-bold">\(Problema\ com\ solução\ múltipla\)</p>
+                {% endif %}
                 <p class="text-2xl p-2 text-green-500 font-bold">\(Z = {{ solution['solucao']['solucao'] }}\)</p>
                 
                 
