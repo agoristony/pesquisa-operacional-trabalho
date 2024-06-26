@@ -59,9 +59,8 @@ async def read_item(request: Request):
         )
     if tipo_simplex == 'dual':
         simplex = simplex.dual()
-    try:
-        solution = simplex.solve(False)
-    except:
+    solution = simplex.solve(False)
+    if solution == None:
         return templates.TemplateResponse(
             request=request, name="infeasible_solution.html")
         

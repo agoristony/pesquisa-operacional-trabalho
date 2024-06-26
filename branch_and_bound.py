@@ -47,10 +47,12 @@ class BranchAndBound:
     def _branch_and_bound(self, simplex, parent_id=None):
         solution = simplex.solve(False)
         id = len(self.history)
+        if solution is None:
+            self.history.append({'simplex': simplex, 'solution': {'solucao': {'solucao': '-'}}, 'integer_solution': False, 'id': len(self.history), 'parent_id': id-2, 'level': self.history[id-1]['level']})
+            return self.history
         solution['solucao'] = {key: round(value, 6) for key, value in solution['solucao'].items()  if key in simplex.expression_util.get_variables(simplex.string_objective_function) or key == 'solucao'}
         self.history.append({'simplex': simplex, 'solution': solution, 'integer_solution': False, 'id': id, 'parent_id': parent_id, 'level': self.history[parent_id]['level'] + 1})
-        if solution is None:
-            return
+        
         objective_value, variable_values = solution['solucao']['solucao'], {var:round(solution['solucao'][f'{var}'],6) for var in simplex.basic_vars if var in simplex.expression_util.get_variables(simplex.string_objective_function)}
         integer_solution, fractional_var_index = self._check_integer_solution(variable_values)
         if integer_solution:

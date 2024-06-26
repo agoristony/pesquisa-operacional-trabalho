@@ -292,14 +292,14 @@ class Simplex:
                 self.show_table()
             if self.iterations > 30:
                 print('Número máximo de iterações atingido')
-                break
+                return None
+                
         response['solucao'] = self.get_results()
         if not self.first_phase:
             self.iteration_history.append(self.register_iteration(None, None, None, None, 'final'))
         response['iteracoes'] = self.iteration_history 
         response['variaveis_nao_basicas'] = {value:0 for key, value in enumerate(self.get_all_vars()) if value not in self.basic_vars}
         response['solucao_inteira'] = all(round(value, 3).is_integer() for key, value in response['solucao'].items() if key in self.variables)
-        # checa se o problema tem multiplas solucoes otimas conferindo se alguma variavel nao basica tem valor 0 
         nb_vars = set(self.get_all_vars()) - set(self.basic_vars)
         for var in nb_vars:
             if self.table[0][self.get_all_vars().index(var)] == 0:
@@ -530,7 +530,9 @@ class Simplex:
         #     solucao['iteracoes'].append(self.register_iteration(self.pivot_column_index, self.get_pivot_line(self.pivot_column_index)[0],self.get_pivot_line(self.pivot_column_index)[1], operations))
         # except:
         #     pass
-        self.solve(verbose)
+        solution = self.solve(verbose)
+        if solution == None:
+            return None
         solucao['solucao'] = self.get_results()
         solucao['iteracoes'] = self.iteration_history 
         solucao['variaveis_nao_basicas'] = {value:0 for key, value in enumerate(self.get_all_vars()) if value not in self.basic_vars}
@@ -634,7 +636,7 @@ def graphical_method(simplex, integer_constraint=False):
     # Plot feasible region points
     feasible_region_points = {f'{constraints[i][0][0]}x1 + {constraints[i][0][1]}x2 {constraints[i][1]} {constraints[i][2][1]}': [] for i in range(len(constraints))}
     np_constraints = np.array([constraint[0] + [float(constraint[2][1])] for constraint in constraints])
-    x_array = np.arange(0, max(bounds_x[0]) + 1, 0.1)
+    x_array = np.arange(0, max(bounds_x[-1]) + 1, 0.1)
 
     for x1_val in x_array:
         for x2_val in x_array:
@@ -684,8 +686,8 @@ def graphical_method(simplex, integer_constraint=False):
                 if solucao_inteira:
                     solucoes_inteiras.append(results)
         ax.scatter([point[0] for point in integer_points], [point[1] for point in integer_points], color='purple', label='Pontos inteiros')
-        solucao_otima_inteira = max(solucoes_inteiras, key=lambda x: x['solucao'])
-        ax.plot(solucao_otima_inteira['x1'], solucao_otima_inteira['x2'], 'ro', label='Solução Ótima Inteira')
+        solucao_otima_inteira = max(solucoes_inteiras, key=lambda x: x['solucao']) if simplex.objective == Objective.MAX.value else min(solucoes_inteiras, key=lambda x: x['solucao'])
+        ax.plot(solucao_otima_inteira['x1'], solucao_otima_inteira['x2'], 'ro', label=f'Solução Ótima Inteira - ({solucao_otima_inteira["x1"]}, {solucao_otima_inteira["x2"]})')
         x = np.linspace(0, 10, 100)
         for i in range(int(solucao_otima_inteira['solucao'])):
            y = (solucao_otima_inteira['solucao'] - i - simplex.objective_function[0] * x) / simplex.objective_function[1]
@@ -699,9 +701,9 @@ def graphical_method(simplex, integer_constraint=False):
     plt.xlabel('x1')
     plt.ylabel('x2')
     
-    
-    plt.xlim(0, max(bounds_x[0]) + 1)
-    plt.ylim(0, max(bounds_y[0]) + 1)
+    print(f'bounds: {bounds_x} - {bounds_y}')
+    plt.xlim(0, max(bounds_x[-1]) + 1 )
+    plt.ylim(0, max(bounds_y[-1]) + 1 )
     plt.title(f'Solução Gráfica - {"Max" if simplex.objective == Objective.MAX.value else "Min"} Z = {simplex.string_objective_function}')
 
     ax.grid(True)
